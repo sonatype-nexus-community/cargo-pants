@@ -12,9 +12,11 @@ matrix:
 
 cache: cargo
 
-after_success:
-  - cargo login $CRATESIO_TOKEN
-  - $TRAVIS_BRANCH = master && $TRAVIS_PULL_REQUEST = false && cargo publish
+deploy:
+  provider: cargo
+  token: $CRATESIO_TOKEN
+  on:
+    tags: true
 
 env:
   global:
