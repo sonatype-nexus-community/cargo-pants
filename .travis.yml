@@ -1,9 +1,21 @@
 language: rust
+
 rust:
   - stable
   - beta
   - nightly
+
 matrix:
   allow_failures:
-    - rust: nightly
-fast_finish: true
+  - rust: nightly
+  fast_finish: true
+
+cache: cargo
+
+after_success:
+  - cargo login ${CRATESIO_TOKEN}
+  - [ $TRAVIS_BRANCH = master ] && [ $TRAVIS_PULL_REQUEST = false ] && cargo publish
+
+env:
+  global:
+    secure: bRdXHZZRD2y2xl+/xsZA/2DR4izCJWd45kR7TqaF76RyNgfCI+/9jlMOhdw38Tp0roE3f/JMhWC5XYfdrFCUDwQ885jGJ2jlUypi5s63uV4l5XLyviQX3rXVTE6+YGPltI4cCqoaVqjpefGG2wH8EUvBbslGUX0KyrBfvA7tq8v4Ku+hobeaH7iAZNZPh/SivZYQZQIeaeXKGFmcge//DdBy6lDXeFAxZOC4iXUI+ptITverK5hruuOYf4pseF2Qk++QpLj0lmz0C0jItQ5w4EjMOrX2wY4goF5Rt3f+fJu3iyzMKL2FjmQMQwjnkLQ5tyzQFRkJRmAEleGvKIazhPpzqbBfHAe5n0nNGEN6H9FZLmA2CXgP8M7gGmdc+kDGO1I9igHcyCnmqvnoPL4+X7sEd/SewREcW3QwXNssv/kphLGL5NRK4NQvakNFUIhq3POVhEcASJIR2kiD3npaKO2AARmFuWLem3hGnAEAtiWKkzcY87Wp6JhTLpT7cOBaoY7HyEiY1jUnadfRdsp2ur+bRRb1iGFDwJigPEu2UN+dn1RPraXgzlrXd/zVPRoZOFIpzVKDDXcGcjxbwv01bSucHVIuLkwHLsER8Lujcv9hy7cFB6QeaEWLpgxzUXdUNRoG8uxY9UJwoOL/5OkuhyJZGH7SrAL9ku2lvXr9E/I=
