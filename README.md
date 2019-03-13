@@ -16,6 +16,9 @@ limitations under the License.
 
 # cargo -pants
 
+[![Build Status](https://travis-ci.org/sonatype-nexus-community/cargo-pants.svg?branch=master)](https://travis-ci.org/sonatype-nexus-community/cargo-pants)
+
 `cargo pants` is a Cargo subcommand that provides a bill of dependencies in a project,
 and the vulnerabilities therin.
 
+### TBD - Add usage
