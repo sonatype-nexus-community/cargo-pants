@@ -2,7 +2,7 @@
 name = "cargo-pants"
 version = "0.0.1"
 authors = ["Glenn Mohre <glenn.mohre@gmail.com>"]
-edition = "2019"
+edition = "2018"
 readme = "README.md"
 repository = "https://github.com/gmohre/cargo-pants"
 description = "cargo-pants is a cargo subcommand application that provides a bill of materials and a list of which dependencies have a vulnerability, powered by Sonatype OSSIndex"
