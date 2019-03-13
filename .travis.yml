@@ -13,8 +13,8 @@ matrix:
 cache: cargo
 
 after_success:
-  - cargo login ${CRATESIO_TOKEN}
-  - [ $TRAVIS_BRANCH = master ] && [ $TRAVIS_PULL_REQUEST = false ] && cargo publish
+  - cargo login $CRATESIO_TOKEN
+  - $TRAVIS_BRANCH = master && $TRAVIS_PULL_REQUEST = false && cargo publish
 
 env:
   global:
