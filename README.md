@@ -14,11 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License. 
 -->
 
+<p align="center">
+    <img src="https://github.com/sonatype-nexus-community/cargo-pants/blob/master/docs/images/pants.logo" width="800"/>
+</p>
+<p align="center">
+    <a href="https://travis-ci.org/sonatype-nexus-community/cargo-pants"><img src="https://travis-ci.org/sonatype-nexus-community/cargo-pants.svg?branch=master" alt="Build Status"></img></a>
+</p>
+
 # cargo -pants
 
-[![Build Status](https://travis-ci.org/sonatype-nexus-community/cargo-pants.svg?branch=master)](https://travis-ci.org/sonatype-nexus-community/cargo-pants)
-
-`cargo pants` is a Cargo subcommand that provides a bill of dependencies in a project,
-and the vulnerabilities therin.
+`cargo pants` is a Cargo subcommand that provides a bill of materials in a project, and any vulnerabilities that are found on those dependencies, powered by [Sonatype OSS Index](https://ossindex.sonatype.org/).
 
 ### TBD - Add usage
