@@ -72,7 +72,7 @@ If vulnerabilities are found, `cargo-pants` exits with status code 3, and prints
 
 ## CI Usage
 
-Similar to `cargo audit` but with more pants, you can run `cargo pants` on your builds using this example config:
+Similar to `cargo audit` but with more pants, you can run `cargo pants` on your builds on Travis CI using this example config:
 
 ```
 language: rust
