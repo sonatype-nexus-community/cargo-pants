@@ -17,7 +17,7 @@ use hyper::Uri;
 use futures::{Future, Stream};
 use hyper::Client;
 use hyper::{Method, Request};
-use hyper::header::{ContentType};
+use hyper::header::{ContentType, UserAgent};
 use hyper_tls::HttpsConnector;
 use hyper::client::HttpConnector;
 use serde_json::Value as JsValue;
@@ -128,7 +128,12 @@ impl OSSIndexClient {
 
         let mut req = Request::new(Method::Post, uri);
 
+        const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
         req.headers_mut().set(ContentType::json());
+        req.headers_mut().set(UserAgent::new(format!("cargo-pants/{}", VERSION)));
+
+        debug!("Request Headers: {:?}", req.headers());
 
         let mut purls: HashMap<String, Vec<String>> = HashMap::new();
 
