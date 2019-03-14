@@ -6,11 +6,19 @@ pub struct Coordinate {
     pub purl: String,
     #[serde(default)]
     pub description: String,
-
     pub reference: String,
-
     #[serde(default)]
     pub vulnerabilities: Vec<Vulnerability>
+}
+
+impl fmt::Display for Coordinate {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut vul_str = String::new();
+        for v in &self.vulnerabilities {
+            vul_str.push_str(&format!("\nVulnerability - {} \n{}", self.purl, v));
+        }
+        write!(f, "{}:{}\n{}", self.description, self.reference, vul_str)
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -26,15 +34,5 @@ pub struct Vulnerability {
 impl fmt::Display for Vulnerability {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}\n{}\n{}\n{}\n{}", self.title, self.description, self.cvss_score, self.cvss_vector, self.reference)
-    }
-}
-
-impl fmt::Display for Coordinate {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut vul_str = String::new();
-        for v in &self.vulnerabilities {
-            vul_str.push_str(&format!("\nVulnerability - {} \n{}", self.purl, v));
-        }
-        write!(f, "{}:{}\n{}", self.description, self.reference, vul_str)
     }
 }
