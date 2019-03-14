@@ -1,6 +1,6 @@
 [package]
 name = "cargo-pants"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["Glenn Mohre <glenn.mohre@gmail.com>"]
 edition = "2018"
 readme = "README.md"
@@ -12,7 +12,6 @@ license_file = "LICENSE"
 [dependencies]
 atty = "0.2"
 env_logger = "0.6.1"
-clap = "2.32.0"
 chrono = { version = "0.4", optional = true }
 futures = "0.1.0"
 gumdrop = "0.5"

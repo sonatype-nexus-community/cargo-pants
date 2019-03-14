@@ -19,11 +19,11 @@ extern crate url;
 extern crate futures;
 extern crate serde;
 
-//#[macro_use]
-//extern crate atty;
+extern crate gumdrop;
+#[allow(unused_imports)]
+#[macro_use]
+extern crate gumdrop_derive;
 
-//#[macro_use]
-//extern crate gumdrop_derive;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;

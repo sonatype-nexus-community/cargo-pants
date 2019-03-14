@@ -11,39 +11,62 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#[macro_use]
-extern crate clap;
-
-use clap::{Arg, App};
-use std::process;
+use std::{
+    env,
+    process
+};
 use cargo_pants::{package::Package, lockfile::Lockfile, client::OSSIndexClient, coordinate::Coordinate};
+use gumdrop::Options;
 
 const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
 
-fn main() {
-    let matches = App::new("Cargo Pants")
-        .version(crate_version!())
-        .author("Glenn Mohre <glennmohre@gmail.com>")
-        .about("A library for auditing your cargo dependencies for vulnerabilities and checking your pants")
-        .arg(Arg::with_name("lockfile")
-            .short("l")
-            .long("lockfile")
-            .takes_value(true)
-            .help("The path to your Cargo.lock file")
-            .default_value(CARGO_DEFAULT_LOCKFILE))
-        .arg(Arg::with_name("pants_style")
-            .short("s")
-            .long("pants_style")
-            .takes_value(true)
-            .help("Your pants style"))
-        .get_matches();
+#[derive(Debug, Options)]
+enum Opts {
+    #[options(help = "Audit Cargo.lock files for vulnerable crates using Sonatype OSSIndex")]
+    Pants(PantsOpts),
+}
 
-    if matches.is_present("pants_style") {
-        let pants_style = String::from(matches.value_of("pants_style").unwrap());
-        check_pants(pants_style);
+/// Options for the `cargo pants` subcommand
+#[derive(Debug, Options)]
+struct PantsOpts {
+    /// Lockfile Path
+    #[options(
+        short = "l",
+        long = "lockfile",
+        help = "The path to your Cargo.lock file"
+    )]
+    lockfile: Option<String>,
+
+    /// Pants Style
+    #[options(
+        short = "s",
+        long = "pants_style",
+        help = "pants style"
+    )]
+    pants_style: Option<String>,
+
+}
+impl Default for PantsOpts {
+    fn default() -> PantsOpts {
+        PantsOpts {
+            lockfile: None,
+            pants_style: None
+        }
     }
-    let lockfile_path = matches.value_of("lockfile").unwrap();
+}
+fn main() {
+    let args: Vec<_> = env::args().collect();
 
+    let Opts::Pants(opts) = Opts::parse_args_default(&args[1..]).unwrap_or_else(|_| {
+        help(1);
+    });
+    let pants_style = opts.pants_style.as_ref().map(|s| s.as_ref()).unwrap_or("");
+
+    if pants_style.len() > 0 {
+        check_pants(pants_style.to_string());
+    }
+
+    let lockfile_path = opts.lockfile.as_ref().map(|s| s.as_ref()).unwrap_or(CARGO_DEFAULT_LOCKFILE);
     audit(lockfile_path.to_string());
 }
 
@@ -107,4 +130,12 @@ fn check_pants(n: String) -> ! {
             process::exit(1337)
         },
     }
+}
+
+/// Print help message
+fn help(code: i32) -> ! {
+    println!("Usage: cargo pants [OPTIONS]");
+    println!();
+    println!("{}", Opts::command_usage("lockfile").unwrap());
+    process::exit(code);
 }
