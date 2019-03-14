@@ -19,6 +19,7 @@ limitations under the License.
 </p>
 <p align="center">
     <a href="https://travis-ci.org/sonatype-nexus-community/cargo-pants"><img src="https://travis-ci.org/sonatype-nexus-community/cargo-pants.svg?branch=master" alt="Build Status"></img></a>
+    <a href="https://crates.io/crates/cargo-pants"><img src="https://img.shields.io/crates/v/cargo-pants.svg"></img></a>
 </p>
 
 # cargo -pants
