@@ -53,7 +53,7 @@ $ cargo pants
 `cargo pants` can be run in your builds context, or ran separately. Two command line flags are supported:
 
 ```
-$ cargo pants --lock_file /path/to/Cargo.lock
+$ cargo pants --lockfile /path/to/Cargo.lock
 ```
 
 This allows you to run `cargo pants` on a `Cargo.lock` file anywhere on your filesystem.
