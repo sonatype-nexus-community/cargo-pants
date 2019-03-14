@@ -78,10 +78,6 @@ pub enum ErrorKind {
     /// Couldn't parse response data
     #[fail(display = "couldn't parse data")]
     Parse,
-
-    /// Git operation failed
-    #[fail(display = "git operation failed")]
-    Repo,
 }
 
 /// Create a new error (of a given enum variant) with a formatted message

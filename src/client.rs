@@ -30,10 +30,7 @@ use std::{
     io
 };
 
-#[cfg(not(test))]
-    const API_BASE: &str = "https://ossindex.sonatype.org/api/v3/";
-#[cfg(test)]
-    const API_BASE: &str =  &format!("{}/", &mockito::server_url());
+const PRODUCTION_API_BASE: &str = "https://ossindex.sonatype.org/api/v3/";
 
 type HttpsClient = Client<HttpsConnector<HttpConnector>, hyper::Body>;
 pub struct OSSIndexClient {
@@ -50,12 +47,16 @@ struct UriMaker {
 impl OSSIndexClient {
     pub fn new(key: String) -> OSSIndexClient {
         env_logger::init();
+        #[cfg(not(test))]
+            let ossindex_api_base = PRODUCTION_API_BASE;
 
+        #[cfg(test)]
+            let ossindex_api_base =  &format!("{}/", &mockito::server_url());
 
-        debug!("Value for ossindex_api_base: {}", API_BASE);
+        debug!("Value for ossindex_api_base: {}", ossindex_api_base);
 
         let uri_maker = UriMaker::new(
-            API_BASE.to_owned(),
+            ossindex_api_base.to_owned(),
             key,
         );
 

@@ -86,7 +86,6 @@ fn audit(lockfile_path: String) -> ! {
         0 => process::exit(0),
         _ => process::exit(3)
     }
-
 }
 
 fn check_pants(n: String) -> ! {
