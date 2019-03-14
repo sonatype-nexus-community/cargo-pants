@@ -32,10 +32,11 @@ extern crate log;
 extern crate env_logger;
 
 pub mod client;
+pub mod coordinate;
 pub mod error;
 pub mod lockfile;
 pub mod package;
 
 pub use crate::{
-    client::*, error::*, lockfile::*, package::*,
+    client::*, coordinate::*, error::*, lockfile::*, package::*,
 };
