@@ -13,7 +13,6 @@
 // limitations under the License.
 use url::Url;
 use std::collections::HashMap;
-use std::fmt;
 use hyper::Uri;
 use futures::{Future, Stream};
 use hyper::Client;
@@ -23,13 +22,14 @@ use hyper_tls::HttpsConnector;
 use hyper::client::HttpConnector;
 use serde_json::Value as JsValue;
 use tokio_core::reactor::Core;
-use crate::{package::Package};
+use crate::{package::Package, coordinate::Coordinate};
 use log::{debug};
 
 use std::{
     cell::RefCell,
     io
 };
+
 const PRODUCTION_API_BASE: &str = "https://ossindex.sonatype.org/api/v3/";
 
 type HttpsClient = Client<HttpsConnector<HttpConnector>, hyper::Body>;
@@ -37,45 +37,6 @@ pub struct OSSIndexClient {
     uri_maker: UriMaker,
     core: RefCell<Core>,
     http: HttpsClient,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Coordinate {
-    #[serde(rename(deserialize = "coordinates"))]
-    pub purl: String,
-    #[serde(default)]
-    pub description: String,
-
-    pub reference: String,
-
-    #[serde(default)]
-    pub vulnerabilities: Vec<Vulnerability>
-}
-
-impl fmt::Display for Coordinate {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut vul_str = String::new();
-        for v in &self.vulnerabilities {
-            vul_str.push_str(&format!("\nVulnerability - {} \n{}", self.purl, v));
-        }
-        write!(f, "{}:{}\n{}", self.description, self.reference, vul_str)
-    }
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all="camelCase")]
-pub struct Vulnerability {
-    pub title: String,
-    pub description: String,
-    pub cvss_score: f32,
-    pub cvss_vector: String,
-    pub reference: String
-}
-
-impl fmt::Display for Vulnerability {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}\n{}\n{}\n{}\n{}", self.title, self.description, self.cvss_score, self.cvss_vector, self.reference)
-    }
 }
 
 struct UriMaker {
@@ -123,9 +84,9 @@ impl OSSIndexClient {
     ) -> Result<Vec<Coordinate>, io::Error> {
         let uri = self.uri_maker.coordinate_by_purl(purl);
         let work = self.get_json(uri).and_then(|value| {
-            let coordinate: Coordinate =
+            let coordinates: Vec<Coordinate> =
                 serde_json::from_value(value).map_err(to_io_error)?;
-            Ok(vec![coordinate])
+            Ok(coordinates)
         });
         self.core.borrow_mut().run(work)
     }
@@ -152,8 +113,6 @@ impl OSSIndexClient {
             .and_then(|res| {
                 res.body().concat2().and_then(move |body| {
                     let value: JsValue = serde_json::from_slice(&body)
-                        // Wrap the `serde_json::Error` in a
-                        // `std::io::Error` (when needed).
                         .map_err(to_io_error)?;
                     Ok(value)
                 })
@@ -174,7 +133,13 @@ impl OSSIndexClient {
 
         let mut purls: HashMap<String, Vec<String>> = HashMap::new();
 
-        purls.insert("coordinates".to_string(), packages.iter().map(|x| x.as_purl()).collect());
+        purls.insert(
+            "coordinates".to_string(),
+            packages.iter().map(
+                |x| x.as_purl()
+            ).collect()
+        );
+
         let json_body = serde_json::to_string(&purls).unwrap();
         req.set_body(json_body);
 
@@ -183,8 +148,6 @@ impl OSSIndexClient {
             .and_then(|res| {
                 res.body().concat2().and_then(move |body| {
                     let value: JsValue = serde_json::from_slice(&body)
-                        // Wrap the `serde_json::Error` in a
-                        // `std::io::Error` (when needed).
                         .map_err(to_io_error)?;
                     Ok(value)
                 })

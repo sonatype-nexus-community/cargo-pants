@@ -16,7 +16,7 @@ extern crate clap;
 
 use clap::{Arg, App};
 use std::process;
-use cargo_pants::{package::Package, lockfile::Lockfile, client::OSSIndexClient, client::Coordinate};
+use cargo_pants::{package::Package, lockfile::Lockfile, client::OSSIndexClient, coordinate::Coordinate};
 
 const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
 
