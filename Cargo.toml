@@ -10,8 +10,8 @@ license = "Apache-2.0"
 license_file = "LICENSE"
 
 [dependencies]
-argparse = "0.2.2"
 atty = "0.2"
+clap = "2.32.0"
 env_logger = "0.6.1"
 chrono = { version = "0.4", optional = true }
 futures = "0.1.0"

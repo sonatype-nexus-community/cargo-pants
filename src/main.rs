@@ -11,40 +11,53 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+#[macro_use]
+extern crate clap;
+
 use std::{
     process,
 };
 use cargo_pants::{package::Package, lockfile::Lockfile, client::OSSIndexClient, coordinate::Coordinate};
-use argparse::{Store, StoreTrue, ArgumentParser};
+use clap::{Arg, App, SubCommand};
 
 const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
 const NOPANTS: &str = "No Pants";
 
 fn main() {
-    let mut lockfile = CARGO_DEFAULT_LOCKFILE.to_string();
     let mut pants_style = NOPANTS.to_string();
     let mut help = false;
-    {
-        let mut ap = ArgumentParser::new();
-        ap.set_description("Audit Cargo.lock files for vulnerable crates using Sonatype OSSIndex");
-        ap.refer(&mut lockfile)
-            .add_option(&["-l", "--lockfile"], Store,
-            "Name for the greeting");
-        ap.refer(&mut pants_style)
-            .add_option(&["-p", "--pants_style"], Store,
-            "Pants Style");
-        ap.refer(&mut help)
-            .add_option(&["--help"], StoreTrue,
-            "Help");
-        ap.parse_args_or_exit();
-    }
-    if pants_style != NOPANTS {
+
+    let matches = App::new("Cargo Pants")
+        .version(crate_version!())
+        .bin_name("cargo")
+        .author("Glenn Mohre <glennmohre@gmail.com>")
+        .about("A library for auditing your cargo dependencies for vulnerabilities and checking your pants")
+        .subcommand(SubCommand::with_name("pants")
+            .arg(Arg::with_name("lockfile")
+                .short("l")
+                .long("lockfile")
+                .takes_value(true)
+                .help("The path to your Cargo.lock file")
+                .default_value(CARGO_DEFAULT_LOCKFILE))
+            .arg(Arg::with_name("pants_style")
+                .short("s")
+                .long("pants_style")
+                .takes_value(true)
+                .help("Your pants style"))
+        )
+        .get_matches();
+
+
+    let pants_matches = matches.subcommand_matches("pants").unwrap();
+
+    if pants_matches.is_present("pants_style") {
+        let pants_style = String::from(pants_matches.value_of("pants_style").unwrap());
         check_pants(pants_style);
     }
-    if help {
-        helper(0);
-    }
-    audit(lockfile);
+
+    let lockfile = pants_matches.value_of("lockfile").unwrap();
+
+    audit(lockfile.to_string());
 }
 
 fn audit(lockfile_path: String) -> ! {
