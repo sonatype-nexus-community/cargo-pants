@@ -12,7 +12,7 @@ cache: cargo
 
 after_success:
   - cargo install cargo-pants --force
-  - cargo pants
+  - cargo pants || travis_terminate 3;
 
 deploy:
   provider: cargo
