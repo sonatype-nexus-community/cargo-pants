@@ -21,12 +21,8 @@ use cargo_pants::{package::Package, lockfile::Lockfile, client::OSSIndexClient, 
 use clap::{Arg, App, SubCommand};
 
 const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
-const NOPANTS: &str = "No Pants";
 
 fn main() {
-    let mut pants_style = NOPANTS.to_string();
-    let mut help = false;
-
     let matches = App::new("Cargo Pants")
         .version(crate_version!())
         .bin_name("cargo")
@@ -119,11 +115,4 @@ fn check_pants(n: String) -> ! {
             process::exit(1337)
         },
     }
-}
-
-/// Print help message
-fn helper(code: i32) -> ! {
-    println!("Usage: cargo pants [OPTIONS]");
-    println!();
-    process::exit(code);
 }
