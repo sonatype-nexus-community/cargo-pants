@@ -13,16 +13,12 @@
 // limitations under the License.
 #![allow(dead_code)]
 
+extern crate argparse;
 extern crate hyper;
 extern crate hyper_tls;
 extern crate url;
 extern crate futures;
 extern crate serde;
-
-extern crate gumdrop;
-#[allow(unused_imports)]
-#[macro_use]
-extern crate gumdrop_derive;
 
 #[macro_use]
 extern crate serde_derive;

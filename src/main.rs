@@ -12,66 +12,42 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 use std::{
-    env,
-    process
+    process,
 };
 use cargo_pants::{package::Package, lockfile::Lockfile, client::OSSIndexClient, coordinate::Coordinate};
-use gumdrop::Options;
+use argparse::{Store, StoreTrue, ArgumentParser};
 
 const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
+const NOPANTS: &str = "No Pants";
 
-#[derive(Debug, Options)]
-enum Opts {
-    #[options(help = "Audit Cargo.lock files for vulnerable crates using Sonatype OSSIndex")]
-    Pants(PantsOpts),
-}
-
-/// Options for the `cargo pants` subcommand
-#[derive(Debug, Options)]
-struct PantsOpts {
-    /// Lockfile Path
-    #[options(
-        short = "l",
-        long = "lockfile",
-        help = "The path to your Cargo.lock file"
-    )]
-    lockfile: Option<String>,
-
-    /// Pants Style
-    #[options(
-        short = "s",
-        long = "pants_style",
-        help = "pants style"
-    )]
-    pants_style: Option<String>,
-
-}
-impl Default for PantsOpts {
-    fn default() -> PantsOpts {
-        PantsOpts {
-            lockfile: None,
-            pants_style: None
-        }
-    }
-}
 fn main() {
-    let args: Vec<_> = env::args().collect();
-
-    let Opts::Pants(opts) = Opts::parse_args_default(&args[1..]).unwrap_or_else(|_| {
-        help(1);
-    });
-    let pants_style = opts.pants_style.as_ref().map(|s| s.as_ref()).unwrap_or("");
-
-    if pants_style.len() > 0 {
-        check_pants(pants_style.to_string());
+    let mut lockfile = CARGO_DEFAULT_LOCKFILE.to_string();
+    let mut pants_style = NOPANTS.to_string();
+    let mut help = false;
+    {
+        let mut ap = ArgumentParser::new();
+        ap.set_description("Audit Cargo.lock files for vulnerable crates using Sonatype OSSIndex");
+        ap.refer(&mut lockfile)
+            .add_option(&["-l", "--lockfile"], Store,
+            "Name for the greeting");
+        ap.refer(&mut pants_style)
+            .add_option(&["-p", "--pants_style"], Store,
+            "Pants Style");
+        ap.refer(&mut help)
+            .add_option(&["--help"], StoreTrue,
+            "Help");
+        ap.parse_args_or_exit();
     }
-
-    let lockfile_path = opts.lockfile.as_ref().map(|s| s.as_ref()).unwrap_or(CARGO_DEFAULT_LOCKFILE);
-    audit(lockfile_path.to_string());
+    if pants_style != NOPANTS {
+        check_pants(pants_style);
+    }
+    if help {
+        helper(0);
+    }
+    audit(lockfile);
 }
 
 fn audit(lockfile_path: String) -> ! {
-
     let lockfile : Lockfile = Lockfile::load(lockfile_path).unwrap_or_else(|e| {
         println!("{}", e);
         process::exit(3);
@@ -133,9 +109,8 @@ fn check_pants(n: String) -> ! {
 }
 
 /// Print help message
-fn help(code: i32) -> ! {
+fn helper(code: i32) -> ! {
     println!("Usage: cargo pants [OPTIONS]");
     println!();
-    println!("{}", Opts::command_usage("lockfile").unwrap());
     process::exit(code);
 }
