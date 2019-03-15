@@ -15,6 +15,7 @@
 extern crate clap;
 
 use std::{
+    env,
     process,
 };
 use cargo_pants::{package::Package, lockfile::Lockfile, client::OSSIndexClient, coordinate::Coordinate};
@@ -56,6 +57,17 @@ fn main() {
     audit(lockfile.to_string());
 }
 
+fn get_api_key() -> String {
+    let api_key:String = match env::var("OSS_INDEX_API_KEY") {
+        Ok(val) => val,
+        Err(e) => {
+            println!("{}", e);
+            "".to_string()
+        }
+    };
+    return api_key
+}
+
 fn audit(lockfile_path: String) -> ! {
     let lockfile : Lockfile = Lockfile::load(lockfile_path).unwrap_or_else(|e| {
         println!("{}", e);
@@ -68,7 +80,8 @@ fn audit(lockfile_path: String) -> ! {
         println!("{}", package);
     }
 
-    let client = OSSIndexClient::new("KEY".to_string());
+    let api_key:String = get_api_key();
+    let client = OSSIndexClient::new(api_key);
     let mut coordinates: Vec<Coordinate> = Vec::new();
     for chunk in packages.chunks(128) {
         coordinates.append(&mut client.post_coordinates(chunk.to_vec()).unwrap());
