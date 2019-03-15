@@ -42,6 +42,8 @@ Don't you check your pants for holes? Similarly, we think you should check your 
 $ cargo install cargo-pants
 ```
 
+Set an environment variable `OSS_INDEX_API_KEY` to auth requests with your key.
+
 Once you have installed `cargo-pants`, you can run it like so:
 
 ```

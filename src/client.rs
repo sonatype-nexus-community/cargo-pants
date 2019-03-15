@@ -125,7 +125,7 @@ impl OSSIndexClient {
         uri: hyper::Uri,
         packages: Vec<Package>
     ) -> Box<Future<Item = JsValue, Error = io::Error>> {
-
+        //debug!("Request URL {:?}", &uri);
         let mut req = Request::new(Method::Post, uri);
 
         const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -134,7 +134,7 @@ impl OSSIndexClient {
         req.headers_mut().set(UserAgent::new(format!("cargo-pants/{}", VERSION)));
 
         debug!("Request Headers: {:?}", req.headers());
-
+        
         let mut purls: HashMap<String, Vec<String>> = HashMap::new();
 
         purls.insert(
@@ -258,7 +258,7 @@ mod tests {
     }
 
     fn test_post_json() {
-        let purl = "pkg:pypi/rust@0.1.1";
+        // let purl = "pkg:pypi/rust@0.1.1";
         // let expected_url = format!("{}/component-report/{}", &mockito::server_url(), purl);
         let mock = mockito::mock("POST", "/component-report/pkg:pypi/rust@0.1.1")
             .with_status(200)
