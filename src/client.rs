@@ -11,32 +11,26 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+use std::{
+    io,
+    collections::HashMap
+};
+
 use url::Url;
-use std::collections::HashMap;
-use hyper::Uri;
-use futures::{Future, Stream};
-use hyper::Client;
-use hyper::{Method, Request};
-use hyper::header::{ContentType, UserAgent};
-use hyper_tls::HttpsConnector;
-use hyper::client::HttpConnector;
+use hyper::rt::{self, Future, Stream};
+use hyper::{Method, Request, Uri, Client, Body};
+use hyper::header::{CONTENT_TYPE, USER_AGENT};
 use serde_json::Value as JsValue;
-use tokio_core::reactor::Core;
-use crate::{package::Package, coordinate::Coordinate};
 use log::{debug};
 
-use std::{
-    cell::RefCell,
-    io
-};
+use crate::{package::Package, coordinate::Coordinate};
 
 const PRODUCTION_API_BASE: &str = "https://ossindex.sonatype.org/api/v3/";
 
-type HttpsClient = Client<HttpsConnector<HttpConnector>, hyper::Body>;
+//type HttpsClient = Client<HttpsConnector<HttpConnector>, hyper::Body>;
+
 pub struct OSSIndexClient {
     uri_maker: UriMaker,
-    core: RefCell<Core>,
-    http: HttpsClient,
 }
 
 struct UriMaker {
@@ -60,24 +54,12 @@ impl OSSIndexClient {
             key,
         );
 
-        let core = Core::new().unwrap();
-
-        let http = {
-            let handle = core.handle();
-            let connector = HttpsConnector::new(4, &handle).unwrap();
-            Client::configure()
-                .connector(connector)
-                .build(&handle)
-        };
-
         OSSIndexClient {
             uri_maker,
-            core: RefCell::new(core),
-            http,
         }
     }
 
-    pub fn get_coordinates(
+/*     pub fn get_coordinates(
         &self,
         purl: &str
     ) -> Result<Vec<Coordinate>, io::Error> {
@@ -89,21 +71,20 @@ impl OSSIndexClient {
         });
         self.core.borrow_mut().run(work)
     }
-
+ */
     pub fn post_coordinates(
         &self,
         purls: Vec<Package>
-    ) -> Result<Vec<Coordinate>, io::Error> {
+    ) -> Vec<Coordinate> {
         let uri = self.uri_maker.component_report_url();
-        let work = self.post_json(uri, purls).and_then(|value| {
-            let coordinates: Vec<Coordinate> =
-                serde_json::from_value(value).map_err(to_io_error)?;
-            Ok(coordinates)
-        });
-        self.core.borrow_mut().run(work)
+        let json_data = rt::run(rt::lazy(|| {
+            self.post_json(uri, purls);
+        }));
+        let coordinates: Vec<Coordinate> = json_data.map(|value| serde_json::from_value(value));
+        return coordinates
     }
 
-    fn get_json(
+/*     fn get_json(
         &self,
         uri: hyper::Uri
     ) -> Box<Future<Item = JsValue, Error = io::Error>> {
@@ -119,45 +100,38 @@ impl OSSIndexClient {
             .map_err(to_io_error);
         Box::new(f)
     }
-
+ */
     fn post_json(
         &self,
         uri: hyper::Uri,
         packages: Vec<Package>
-    ) -> Box<Future<Item = JsValue, Error = io::Error>> {
+    ) ->  impl Future<Item=JsValue, Error=io::Error> {
         //debug!("Request URL {:?}", &uri);
-        let mut req = Request::new(Method::Post, uri);
-
         const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-
-        req.headers_mut().set(ContentType::json());
-        req.headers_mut().set(UserAgent::new(format!("cargo-pants/{}", VERSION)));
-
-        debug!("Request Headers: {:?}", req.headers());
-        
         let mut purls: HashMap<String, Vec<String>> = HashMap::new();
-
         purls.insert(
             "coordinates".to_string(),
             packages.iter().map(
                 |x| x.as_purl()
             ).collect()
         );
-
         let json_body = serde_json::to_string(&purls).unwrap();
-        req.set_body(json_body);
-
-        let f = self.http
-            .request(req)
-            .and_then(|res| {
-                res.body().concat2().and_then(move |body| {
-                    let value: JsValue = serde_json::from_slice(&body)
-                        .map_err(to_io_error)?;
-                    Ok(value)
-                })
+        let client = Client::new();
+        let req = Request::builder()
+            .method(Method::POST)
+            .uri(&uri)
+            .header(CONTENT_TYPE, "application/json")
+            .header(USER_AGENT, format!("cargo-pants/{}", VERSION))
+            .body(Body::from(json_body))
+            .unwrap();
+        client.request(req).and_then(|res| {
+                res.into_body().concat2()
+            .and_then(move |body| {
+                let value: JsValue = serde_json::from_slice(&body).map_err(to_io_error)?;
+                Ok(value)
             })
-            .map_err(to_io_error);
-        Box::new(f)
+        })
+        .map_err(to_io_error);
     }
 }
 
