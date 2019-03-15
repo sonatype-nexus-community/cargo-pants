@@ -125,7 +125,7 @@ impl OSSIndexClient {
         uri: hyper::Uri,
         packages: Vec<Package>
     ) -> Box<Future<Item = JsValue, Error = io::Error>> {
-        debug!("Request URL {:?}", &uri);
+        //debug!("Request URL {:?}", &uri);
         let mut req = Request::new(Method::Post, uri);
 
         const VERSION: &'static str = env!("CARGO_PKG_VERSION");
