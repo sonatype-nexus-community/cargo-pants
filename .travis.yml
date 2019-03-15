@@ -10,11 +10,17 @@ matrix:
 
 cache: cargo
 
+after_success:
+  - cargo install cargo-pants --force
+  - cargo pants
+
 deploy:
   provider: cargo
   token: $CRATESIO_TOKEN
   on:
     tags: true
+
+
 
 env:
   global:
