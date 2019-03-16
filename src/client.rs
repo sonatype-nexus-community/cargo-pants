@@ -24,8 +24,6 @@ use crate::{package::Package, coordinate::Coordinate};
 
 const PRODUCTION_API_BASE: &str = "https://ossindex.sonatype.org/api/v3/";
 
-//type HttpsClient = Client<HttpsConnector<HttpConnector>, hyper::Body>;
-
 pub struct OSSIndexClient {
     url_maker: UrlMaker,
 }
