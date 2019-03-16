@@ -33,11 +33,6 @@ struct UrlMaker {
     api_key: String
 }
 
-#[derive(Deserialize, Debug)]
-struct OSSResponse {
-    coordinates: Vec<Coordinate>,
-}
-
 impl OSSIndexClient {
     pub fn new(key: String) -> OSSIndexClient {
         env_logger::init();
