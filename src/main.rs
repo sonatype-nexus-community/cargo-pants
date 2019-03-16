@@ -84,7 +84,7 @@ fn audit(lockfile_path: String) -> ! {
     let client = OSSIndexClient::new(api_key);
     let mut coordinates: Vec<Coordinate> = Vec::new();
     for chunk in packages.chunks(128) {
-        coordinates.append(&mut client.post_coordinates(chunk.to_vec()).unwrap());
+        coordinates.append(&mut client.post_coordinates(chunk.to_vec()));
     }
 
     let mut vulnerabilities_count: u32 = 0;
