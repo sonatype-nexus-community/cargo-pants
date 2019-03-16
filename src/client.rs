@@ -72,15 +72,16 @@ impl OSSIndexClient {
         purls: Vec<Package>
     ) -> Vec<Coordinate> {
         let url = self.url_maker.component_report_url();
-        let coordinates: Vec<Coordinate> = self.post_json_reqwest(url.to_string(), purls).unwrap();
+        let coordinates: Vec<Coordinate> = self.post_json(url.to_string(), purls).unwrap();
         return coordinates
     }
 
-    fn post_json_reqwest(
+    fn post_json(
         &self,
         uri: String,
         packages: Vec<Package>
     ) ->  Result<Vec<Coordinate>, reqwest::Error> {
+        // TODO: The purl parsing should move into it's own function or builder, etc...
         let mut purls: HashMap<String, Vec<String>> = HashMap::new();
 
         purls.insert(
