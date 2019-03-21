@@ -39,7 +39,7 @@ impl OSSIndexClient {
             let ossindex_api_base = PRODUCTION_API_BASE;
 
         #[cfg(test)]
-            let ossindex_api_base =  &format!("{}/api/v3/", &mockito::server_url());
+            let ossindex_api_base = &mockito::server_url();
 
         debug!("Value for ossindex_api_base: {}", ossindex_api_base);
 
@@ -86,13 +86,15 @@ impl OSSIndexClient {
         );
         error!("\n Purls {:?}, {:?}", &purls, &url);
         let client = Client::new();
-        let response: Vec<Coordinate> = client.post(&url)
+
+        let mut response = client.post(&url)
             .json(&purls)
             .headers(self.construct_headers())
-            .send()?
-            .json()?;
+            .send()?;
+
         error!("\njson{:?}", response);
-        Ok(response)
+
+        Ok(response.json()?)
     }
 }
 
@@ -173,6 +175,7 @@ mod tests {
     #[test]
     fn test_post_json() {
         init_logger();
+
         let raw_json: &[u8] = r##"{
             "coordinates": "pkg:cargo/claxon@0.3.0",
             "description": "A FLAC decoding library",
@@ -188,15 +191,17 @@ mod tests {
                     }
                 ]
             }"##.as_bytes();
+            
         let coord: Coordinate = serde_json::from_slice(raw_json).unwrap();
         error!("\nCoord {}", coord);
         let package: Package = test_package_data();
         error!("\n Package {}", package);
-        let mock = mock("POST", "/component-report")
-            .with_status(200)
-            .with_header("content-type", "application/json")
+
+        let mock = mock("POST", "/component-report?api_key=ALL_YOUR_KEY")
+            .with_header("CONTENT_TYPE", "application/json")
             .with_body(raw_json)
             .create();
+        
         let packages = vec![package];
         {
             let key = String::from("ALL_YOUR_KEY");
