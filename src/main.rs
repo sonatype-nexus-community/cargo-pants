@@ -20,10 +20,10 @@ use std::{
 };
 use cargo_pants::{package::Package, lockfile::Lockfile, client::OSSIndexClient, coordinate::Coordinate};
 use clap::{Arg, App, SubCommand};
-
 const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
 
 fn main() {
+    env_logger::init();
     let matches = App::new("Cargo Pants")
         .version(crate_version!())
         .bin_name("cargo")
