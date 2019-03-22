@@ -14,7 +14,6 @@
 #![allow(dead_code)]
 
 extern crate url;
-extern crate futures;
 extern crate serde;
 extern crate clap;
 extern crate reqwest;
@@ -22,7 +21,6 @@ extern crate reqwest;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
-extern crate tokio_core;
 extern crate log;
 extern crate env_logger;
 
