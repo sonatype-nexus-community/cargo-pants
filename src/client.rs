@@ -66,7 +66,7 @@ impl OSSIndexClient {
         purls: Vec<Package>
     ) -> Vec<Coordinate> {
         let url = self.url_maker.component_report_url();
-        let coordinates: Vec<Coordinate> = self.post_json(url.to_string(), purls).unwrap();
+        let coordinates: Vec<Coordinate> = self.post_json(url.to_string(), purls).unwrap_or_default();
         return coordinates
     }
 
@@ -84,7 +84,6 @@ impl OSSIndexClient {
                 |x| x.as_purl()
             ).collect()
         );
-        error!("\n Purls {:?}, {:?}", &purls, &url);
         let client = Client::new();
 
         let mut response = client.post(&url)
@@ -92,9 +91,7 @@ impl OSSIndexClient {
             .headers(self.construct_headers())
             .send()?;
 
-        error!("\njson{:?}", response);
-
-        Ok(response.json()?)
+        response.json()
     }
 }
 
@@ -139,7 +136,6 @@ mod tests {
     }
     #[test]
     fn new_urlmaker() {
-        error!("Stuff");
         let api_base = "https://allyourbase.api/api/v3/";
         let api_key = "ALL_YOUR_KEY";
         let urlmaker = UrlMaker::new(api_base.to_string(), api_key.to_string());
@@ -153,7 +149,8 @@ mod tests {
             "coordinates": "pkg:pypi/rust@0.1.1",
             "description": "Ribo-Seq Unit Step Transformation",
             "reference": "https://ossindex.sonatype.org/component/pkg:pypi/rust@0.1.1",
-            "vulnerabilities": []
+            "vulnerabilities": [],
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
         }"##.as_bytes();
         let value: serde_json::Value =
             serde_json::from_slice(raw_json).unwrap();
@@ -189,20 +186,16 @@ mod tests {
                         "cvssVector": "CVSS:3.0/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N",
                         "reference": "https://ossindex.sonatype.org/vuln/bd1aacf1-bc91-441d-aaf8-44f40513200d"
                     }
-                ]
+                ],
+            "source": "registry+https://github.com/rust-lang/crates.io-index"
             }"##.as_bytes();
-            
-        let coord: Coordinate = serde_json::from_slice(raw_json).unwrap();
-        error!("\nCoord {}", coord);
-        let package: Package = test_package_data();
-        error!("\n Package {}", package);
-
+        //let coord: Coordinate = serde_json::from_slice(raw_json).unwrap();
+        let packages: Vec<Package> = vec![test_package_data()];
         let mock = mock("POST", "/component-report?api_key=ALL_YOUR_KEY")
             .with_header("CONTENT_TYPE", "application/json")
             .with_body(raw_json)
             .create();
         
-        let packages = vec![package];
         {
             let key = String::from("ALL_YOUR_KEY");
             let client = OSSIndexClient::new(key);
