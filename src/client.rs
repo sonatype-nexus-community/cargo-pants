@@ -18,9 +18,10 @@ use std::{
 use url::Url;
 use reqwest::header::{USER_AGENT, HeaderValue, HeaderMap};
 use reqwest::Client;
+#[allow(unused_imports)]
 use log::{debug,error};
 
-use crate::{package::{PackageName, Package}, coordinate::Coordinate};
+use crate::{package::{Package}, coordinate::Coordinate};
 
 const PRODUCTION_API_BASE: &str = "https://ossindex.sonatype.org/api/v3/";
 
