@@ -13,12 +13,11 @@
 // limitations under the License.
 #![allow(dead_code)]
 
-extern crate hyper;
-extern crate hyper_tls;
 extern crate url;
 extern crate futures;
 extern crate serde;
 extern crate clap;
+extern crate reqwest;
 
 #[macro_use]
 extern crate serde_derive;
