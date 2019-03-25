@@ -70,7 +70,7 @@ fn get_api_key() -> String {
 
 fn audit(lockfile_path: String) -> ! {
     let lockfile : Lockfile = Lockfile::load(&lockfile_path).unwrap_or_else(|e| {
-        println!("could not load lockfile: {}, error: {}", &lockfile_path, e);
+        println!("{}", e);
         process::exit(3);
     });
 
