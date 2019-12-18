@@ -28,7 +28,7 @@ fn main() {
         .version(crate_version!())
         .bin_name("cargo")
         .author("Glenn Mohre <glennmohre@gmail.com>")
-        .about("A library for auditing your cargo dependencies for vulnerabilities and checking your pants")
+        .about("A library that vibes with your pants and also audits cargo dependencies for vulnerabilities")
         .subcommand(SubCommand::with_name("pants")
             .arg(Arg::with_name("lockfile")
                 .short("l")
