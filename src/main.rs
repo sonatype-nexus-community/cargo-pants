@@ -45,23 +45,29 @@ fn main() {
         .get_matches();
 
 
-    let pants_matches = matches.subcommand_matches("pants").unwrap();
+    match matches.subcommand_matches("pants") {
+	None => {
+	    println!("Error, this tool is designed to be executed from cargo itself.");
+	    println!("Therefore at least the command line parameter 'pants' must be provided.");
+	}
+	Some(pants_matches) => {
+	    if pants_matches.is_present("pants_style") {
+		let pants_style = String::from(pants_matches.value_of("pants_style").unwrap());
+		check_pants(pants_style);
+	    }
 
-    if pants_matches.is_present("pants_style") {
-        let pants_style = String::from(pants_matches.value_of("pants_style").unwrap());
-        check_pants(pants_style);
+	    let lockfile = pants_matches.value_of("lockfile").unwrap();
+
+	    audit(lockfile.to_string());
+	}
     }
-
-    let lockfile = pants_matches.value_of("lockfile").unwrap();
-
-    audit(lockfile.to_string());
 }
 
 fn get_api_key() -> String {
     let api_key:String = match env::var("OSS_INDEX_API_KEY") {
         Ok(val) => val,
         Err(e) => {
-            println!("{}", e);
+            println!("Error, 'OSS_INDEX_API_KEY': {}",e);
             "".to_string()
         }
     };
