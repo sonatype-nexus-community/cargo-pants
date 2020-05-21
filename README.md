@@ -15,7 +15,7 @@ limitations under the License.
 -->
 
 <p align="center">
-    <img src="https://github.com/sonatype-nexus-community/cargo-pants/blob/master/docs/images/pants.jpg" width="800"/>
+    <img src="https://github.com/sonatype-nexus-community/cargo-pants/blob/master/docs/images/pants.png" width="350"/>
 </p>
 <p align="center">
     <a href="https://travis-ci.org/sonatype-nexus-community/cargo-pants"><img src="https://travis-ci.org/sonatype-nexus-community/cargo-pants.svg?branch=master" alt="Build Status"></img></a>
