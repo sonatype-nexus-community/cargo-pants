@@ -16,7 +16,7 @@ jobs:
           command: git config user.name "$GITHUB_USERNAME" && git config user.email "$GITHUB_EMAIL"
       - run:
           name: Run publish
-          command: RUST_LOG=debug cargo release --no-confirm -v --token $CARGO_REGISTRY_TOKEN
+          command: git config --global url."git@github.com:".insteadOf "https://github.com/" && cargo release --no-confirm -v --token $CARGO_REGISTRY_TOKEN
 
   build:
     docker:
