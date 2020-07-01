@@ -36,7 +36,8 @@ impl Lockfile {
 
     // Parse the TOML data from the `Cargo.lock` file
     pub fn from_toml(lockfile: &str, toml_string: &str) -> Result<Self, Error> {
-        Ok(toml::from_str(toml_string).expect(format!("could not parse lockfile: {:?}", lockfile).as_str()))
+        Ok(toml::from_str(toml_string)
+            .expect(format!("could not parse lockfile: {:?}", lockfile).as_str()))
     }
 }
 

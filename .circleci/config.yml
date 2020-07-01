@@ -1,0 +1,54 @@
+version: 2.1
+jobs:
+  release:
+    docker:
+      - image: 'circleci/rust:1.44.1'
+    steps:
+      - checkout
+      - run: cargo publish --dry-run
+  build:
+    docker:
+      - image: 'circleci/rust:1.44.1'
+    steps:
+      - checkout
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version
+      - run:
+          name: Calculate dependencies
+          command: cargo generate-lockfile
+      - restore_cache:
+          key: cargo-pants-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
+      - run:
+          name: Check formatting
+          command: cargo fmt -- --check
+      - run:
+          name: Build all targets
+          command: cargo build --all --all-targets
+      - save_cache:
+          key: cargo-pants-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
+          paths:
+            - "~/.cargo"
+            - "./target"
+      - run:
+          name: Run all tests
+          command: cargo test --all
+      - run: 
+          name: Install Cargo Pants as Cargo Subcommand
+          command: cargo install cargo-pants --force
+      - run: 
+          name: Dogfood Cargo Pants
+          command: cargo pants
+
+workflows:
+  version: 2
+  build_and_release:
+    jobs:
+      - build
+      - release:
+          context: cargo-pants
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*(-.*)*/

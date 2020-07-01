@@ -13,18 +13,18 @@
 // limitations under the License.
 #![allow(dead_code)]
 
-extern crate url;
-extern crate futures;
-extern crate serde;
 extern crate clap;
+extern crate futures;
 extern crate reqwest;
+extern crate serde;
+extern crate url;
 
 #[macro_use]
 extern crate serde_derive;
+extern crate env_logger;
+extern crate log;
 extern crate serde_json;
 extern crate tokio_core;
-extern crate log;
-extern crate env_logger;
 
 pub mod client;
 pub mod coordinate;
@@ -32,6 +32,4 @@ pub mod error;
 pub mod lockfile;
 pub mod package;
 
-pub use crate::{
-    client::*, coordinate::*, error::*, lockfile::*, package::*,
-};
+pub use crate::{client::*, coordinate::*, error::*, lockfile::*, package::*};

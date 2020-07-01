@@ -11,17 +11,15 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use std::{
-    collections::HashMap
-};
+use std::collections::HashMap;
 
-use url::Url;
-use reqwest::header::{USER_AGENT, HeaderValue, HeaderMap};
-use reqwest::Client;
 #[allow(unused_imports)]
-use log::{debug,error};
+use log::{debug, error};
+use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
+use reqwest::Client;
+use url::Url;
 
-use crate::{package::{Package}, coordinate::Coordinate};
+use crate::{coordinate::Coordinate, package::Package};
 
 const PRODUCTION_API_BASE: &str = "https://ossindex.sonatype.org/api/v3/";
 
@@ -31,63 +29,58 @@ pub struct OSSIndexClient {
 
 struct UrlMaker {
     api_base: String,
-    api_key: String
+    api_key: String,
 }
 
 impl OSSIndexClient {
     pub fn new(key: String) -> OSSIndexClient {
         #[cfg(not(test))]
-            let ossindex_api_base = PRODUCTION_API_BASE;
+        let ossindex_api_base = PRODUCTION_API_BASE;
 
         #[cfg(test)]
-            let ossindex_api_base = &mockito::server_url();
+        let ossindex_api_base = &mockito::server_url();
 
         debug!("Value for ossindex_api_base: {}", ossindex_api_base);
 
-        let url_maker = UrlMaker::new(
-            ossindex_api_base.to_owned(),
-            key,
-        );
+        let url_maker = UrlMaker::new(ossindex_api_base.to_owned(), key);
 
-        OSSIndexClient {
-            url_maker
-        }
+        OSSIndexClient { url_maker }
     }
 
     fn construct_headers(&self) -> HeaderMap {
         const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-        
+
         let mut headers = HeaderMap::new();
-        headers.insert(USER_AGENT, HeaderValue::from_str(&format!("cargo-pants/{}", VERSION)).unwrap());
+        headers.insert(
+            USER_AGENT,
+            HeaderValue::from_str(&format!("cargo-pants/{}", VERSION)).unwrap(),
+        );
         headers
     }
 
-    pub fn post_coordinates(
-        &self,
-        purls: Vec<Package>
-    ) -> Vec<Coordinate> {
+    pub fn post_coordinates(&self, purls: Vec<Package>) -> Vec<Coordinate> {
         let url = self.url_maker.component_report_url();
-        let coordinates: Vec<Coordinate> = self.post_json(url.to_string(), purls).unwrap_or_default();
-        return coordinates
+        let coordinates: Vec<Coordinate> =
+            self.post_json(url.to_string(), purls).unwrap_or_default();
+        return coordinates;
     }
 
     fn post_json(
         &self,
         url: String,
-        packages: Vec<Package>
-    ) ->  Result<Vec<Coordinate>, reqwest::Error> {
+        packages: Vec<Package>,
+    ) -> Result<Vec<Coordinate>, reqwest::Error> {
         // TODO: The purl parsing should move into it's own function or builder, etc...
         let mut purls: HashMap<String, Vec<String>> = HashMap::new();
 
         purls.insert(
             "coordinates".to_string(),
-            packages.iter().map(
-                |x| x.as_purl()
-            ).collect()
+            packages.iter().map(|x| x.as_purl()).collect(),
         );
         let client = Client::new();
 
-        let mut response = client.post(&url)
+        let mut response = client
+            .post(&url)
             .json(&purls)
             .headers(self.construct_headers())
             .send()?;
@@ -97,17 +90,14 @@ impl OSSIndexClient {
 }
 
 impl UrlMaker {
-    pub fn new (
-        api_base: String,
-        api_key: String
-    ) -> UrlMaker {
-        UrlMaker { api_base: api_base, api_key: api_key }
+    pub fn new(api_base: String, api_key: String) -> UrlMaker {
+        UrlMaker {
+            api_base: api_base,
+            api_key: api_key,
+        }
     }
 
-    fn build_url(
-        &self,
-        path: &str
-    ) -> Result<Url, url::ParseError> {
+    fn build_url(&self, path: &str) -> Result<Url, url::ParseError> {
         let mut url = Url::parse(&self.api_base)?.join(path)?;
         url.query_pairs_mut()
             .append_pair(&"api_key".to_string(), &self.api_key);
@@ -116,7 +106,7 @@ impl UrlMaker {
 
     pub fn component_report_url(&self) -> Url {
         let url = self.build_url("component-report").unwrap();
-        return url
+        return url;
     }
 }
 
@@ -125,7 +115,7 @@ mod tests {
     use super::*;
     use mockito::mock;
     extern crate env_logger;
-    
+
     fn init_logger() {
         let _ = env_logger::builder().is_test(true).try_init();
     }
@@ -152,9 +142,9 @@ mod tests {
             "reference": "https://ossindex.sonatype.org/component/pkg:pypi/rust@0.1.1",
             "vulnerabilities": [],
             "source": "registry+https://github.com/rust-lang/crates.io-index"
-        }"##.as_bytes();
-        let value: serde_json::Value =
-            serde_json::from_slice(raw_json).unwrap();
+        }"##
+        .as_bytes();
+        let value: serde_json::Value = serde_json::from_slice(raw_json).unwrap();
         assert_eq!(value["coordinates"], "pkg:pypi/rust@0.1.1");
         assert_eq!(value["description"], "Ribo-Seq Unit Step Transformation");
     }
@@ -163,12 +153,13 @@ mod tests {
         let package_data = r##"{
             "name": "claxon",
             "version": "0.3.0"
-        }"##.as_bytes();
+        }"##
+        .as_bytes();
         let package: Package = match serde_json::from_slice::<Package>(package_data) {
             Ok(p) => p,
-            Err(p) => panic!(format!("Someshit {}", p))
+            Err(p) => panic!(format!("Someshit {}", p)),
         };
-        return package
+        return package;
     }
     #[test]
     fn test_post_json() {
@@ -196,7 +187,7 @@ mod tests {
             .with_header("CONTENT_TYPE", "application/json")
             .with_body(raw_json)
             .create();
-        
+
         {
             let key = String::from("ALL_YOUR_KEY");
             let client = OSSIndexClient::new(key);
@@ -232,6 +223,5 @@ mod tests {
                 "reference": "https://ossindex.sonatype.org/vuln/bb99215c-ee5f-4539-98a5-f1257429c3a0"
             }]
         }]"##.as_bytes();
-     }
- }
-
+    }
+}
