@@ -7,4 +7,10 @@ git config user.email "$GITHUB_EMAIL"
 
 cargo bump $CIRCLE_TAG
 
-cargo publish --dry-run --allow-dirty
+git add .
+
+git commit -m "[skip ci] release of $CIRCLE_TAG"
+
+git push origin master
+
+cargo publish
