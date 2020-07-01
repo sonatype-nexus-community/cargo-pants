@@ -5,6 +5,15 @@ jobs:
       - image: 'circleci/rust:1.44.1'
     steps:
       - checkout
+      - run: 
+          name: Install cargo bump
+          command: cargo install cargo-bump --force
+      - run:
+          name: Bump version
+          command: cargo bump $CIRCLE_TAG
+      - run:
+          name: Check version
+          command: cat Cargo.toml
       - run: cargo publish --dry-run
   build:
     docker:
