@@ -5,8 +5,8 @@ jobs:
       - image: 'circleci/rust:1.44.1'
     steps:
       - add_ssh_keys:
-        fingerprints:
-          - "ca:b3:cd:ca:06:0d:42:99:78:27:26:e2:5b:b7:94:a3"
+          fingerprints:
+            - "ca:b3:cd:ca:06:0d:42:99:78:27:26:e2:5b:b7:94:a3"
       - checkout
       - run:
           name: Run publish
