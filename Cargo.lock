@@ -139,7 +139,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-pants"
-version = "0.1.9-alpha-0"
+version = "0.1.10-alpha-0"
 dependencies = [
  "atty",
  "chrono",
