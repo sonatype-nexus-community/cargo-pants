@@ -1,2 +1,2 @@
-pre-release-commit-message = "[skip ci] release {{ version }}"
-post-release-commit-message = "[skip ci] released {{ version }}, starting {{ next_version }}"
+pre-release-commit-message = "[skip ci] release {{version}}"
+post-release-commit-message = "[skip ci] released {{version}}, starting {{next_version}}"
