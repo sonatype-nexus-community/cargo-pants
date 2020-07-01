@@ -16,7 +16,7 @@ jobs:
           command: git config user.name "$GITHUB_USERNAME" && git config user.email "$GITHUB_EMAIL"
       - run:
           name: Run publish
-          command: cargo release --no-confirm
+          command: cargo release --no-confirm -v
 
   build:
     docker:
