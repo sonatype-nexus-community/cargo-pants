@@ -1,6 +1,6 @@
 [package]
 name = "cargo-pants"
-version = "0.1.12"
+version = "0.1.13-alpha-0"
 authors = ["Glenn Mohre <glenn.mohre@gmail.com>"]
 edition = "2018"
 readme = "README.md"
