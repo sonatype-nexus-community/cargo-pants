@@ -18,7 +18,7 @@ limitations under the License.
     <img src="https://github.com/sonatype-nexus-community/cargo-pants/blob/master/docs/images/pants.png" width="350"/>
 </p>
 <p align="center">
-    <a href="https://travis-ci.org/sonatype-nexus-community/cargo-pants"><img src="https://travis-ci.org/sonatype-nexus-community/cargo-pants.svg?branch=master" alt="Build Status"></img></a>
+    <a href="https://circleci.com/gh/sonatype-nexus-community/cargo-pants"><img src="https://circleci.com/gh/sonatype-nexus-community/cargo-pants.svg?style=shield" alt="Circle CI Build Status"></img></a>
     <a href="https://crates.io/crates/cargo-pants"><img src="https://img.shields.io/crates/v/cargo-pants.svg"></img></a>
 </p>
 
