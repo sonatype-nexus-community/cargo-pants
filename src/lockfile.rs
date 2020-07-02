@@ -29,14 +29,15 @@ impl Lockfile {
         let lockfile_str = path.as_ref().to_str().unwrap();
         let mut file = File::open(path.as_ref())
             .expect(format!("could not load lockfile: {:?}", lockfile_str).as_str());
-        let mut toml = String::new();
-        file.read_to_string(&mut toml)?;
-        Self::from_toml(&lockfile_str, &toml)
+        let mut toml = String::new(); // ""
+        file.read_to_string(&mut toml)?; // "Somethings in the string now"
+        Self::from_toml(&toml)
     }
 
     // Parse the TOML data from the `Cargo.lock` file
-    pub fn from_toml(lockfile: &str, toml_string: &str) -> Result<Self, Error> {
-        Ok(toml::from_str(toml_string).expect(format!("could not parse lockfile: {:?}", lockfile).as_str()))
+    pub fn from_toml(toml_string: &str) -> Result<Self, Error> {
+        Ok(toml::from_str(toml_string)
+            .expect(format!("could not parse toml").as_str()))
     }
 }
 
@@ -57,7 +58,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "could not parse lockfile: \"README.md\"")]
+    #[should_panic(expected = "could not parse toml")]
     fn load_cargo_lockfile_invalid() {
         Lockfile::load("README.md").unwrap();
     }
