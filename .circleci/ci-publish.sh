@@ -13,6 +13,6 @@ git commit -am "[skip ci] new development bump to $VERSION"
 
 git tag -a $VERSION -m "$VERSION release"
 
-cargo publish --token --verbose $CARGO_REGISTRY_TOKEN
+cargo publish --token $CARGO_REGISTRY_TOKEN --verbose 
 
 git push origin --follow-tags
