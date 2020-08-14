@@ -9,7 +9,7 @@ cargo bump patch
 
 VERSION=$(grep -e '^version' Cargo.toml | cut -d "\"" -f2)
 
-git commit -S -am "[skip ci] new development bump to $VERSION"
+git commit -am "[skip ci] new development bump to $VERSION"
 
 git tag -a $VERSION -m "$VERSION release"
 
