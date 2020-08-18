@@ -26,13 +26,12 @@ extern crate log;
 extern crate serde_json;
 extern crate tokio_core;
 
+pub mod cache;
 pub mod client;
 pub mod coordinate;
 pub mod error;
 pub mod lockfile;
 pub mod package;
 pub mod types;
-pub mod cache;
-
 
 pub use crate::{cache::*, client::*, coordinate::*, error::*, lockfile::*, package::*};
