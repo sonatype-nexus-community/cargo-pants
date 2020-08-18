@@ -31,5 +31,8 @@ pub mod coordinate;
 pub mod error;
 pub mod lockfile;
 pub mod package;
+pub mod types;
+pub mod cache;
 
-pub use crate::{client::*, coordinate::*, error::*, lockfile::*, package::*};
+
+pub use crate::{cache::*, client::*, coordinate::*, error::*, lockfile::*, package::*};
