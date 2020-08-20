@@ -71,7 +71,7 @@ impl Cache {
                 // Is it expired?
                 if db_value.ttl < Utc::now() {
                     // Remove and update key. Ok can be true or false, if the rem failed.
-                    let res: Result<_, PickleError> = match self.db{
+                    let res: Result<_, PickleError> = match self.db {
                         Some(ref mut db) => db.rem(&db_value.coords.purl),
                         None => Ok(false),
                     };
@@ -81,11 +81,11 @@ impl Cache {
                             {
                                 let _res: Result<_, PickleError> = match self.db.as_mut() {
                                     Some(db) => db.set(&db_value.coords.purl, &db_value),
-                                    None => return
+                                    None => return,
                                 };
                             }
                             return;
-                        },
+                        }
                         Ok(false) => return,
                         Err(_) => return,
                     }
@@ -95,7 +95,7 @@ impl Cache {
             None => {
                 let _res: Result<_, PickleError> = match self.db.as_mut() {
                     Some(db) => db.set(&db_value.coords.purl, &db_value),
-                    None => return
+                    None => return,
                 };
                 return;
             }
@@ -122,13 +122,11 @@ mod tests {
     use super::*;
     #[test]
     fn init_cache() {
-        let cache: Cache = Cache::new(
-            Options {
-                db_dir: "dbdir".to_string(),
-                db_name: "dbname".to_string(),
-                ttl: 60*60*&12,
-            }
-        );
+        let cache: Cache = Cache::new(Options {
+            db_dir: "dbdir".to_string(),
+            db_name: "dbname".to_string(),
+            ttl: 60 * 60 * &12,
+        });
         let db_path: String = format!(
             "{}/{}/{}/{}",
             std::env::var("HOME").unwrap(),
