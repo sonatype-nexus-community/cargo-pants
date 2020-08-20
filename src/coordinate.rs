@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Coordinate {
     #[serde(rename(deserialize = "coordinates"))]
     pub purl: String,
@@ -21,7 +21,7 @@ impl fmt::Display for Coordinate {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Vulnerability {
     pub title: String,

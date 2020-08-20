@@ -14,13 +14,14 @@ atty = "0.2"
 reqwest = "0.9.11"
 clap = "2.32.0"
 env_logger = "0.6.1"
-chrono = { version = "0.4", optional = true }
+chrono = { version = "0.4", features = ["serde"] }
 futures = "0.1.25"
 prettytable-rs = "0.6.7"
 failure = "0.1"
 failure_derive = "0.1"
 lazy_static = "1"
 log = "0.4.0"
+pickledb = "0.4.1"
 platforms = "0.1"
 semver = { version = "0.9", features = ["serde"] }
 serde = "1.0.42"
@@ -31,3 +32,5 @@ url = "1.7.0"
 mockito = "0.15.1"
 term = "0.5"
 toml = "0.4"
+ttl_cache = "0.5.1"
+
