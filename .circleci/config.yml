@@ -1,8 +1,12 @@
 version: 2.1
+executors:
+  circleci-rust-docker:
+    docker:
+      - image: circleci/rust:1.44.1
+
 jobs:
   release:
-    docker:
-      - image: 'circleci/rust:1.44.1'
+    executor: circleci-rust-docker
     steps:
       - add_ssh_keys:
           fingerprints:
@@ -13,8 +17,7 @@ jobs:
           command: .circleci/ci-publish.sh
 
   build:
-    docker:
-      - image: 'circleci/rust:1.44.1'
+    executor: circleci-rust-docker
     steps:
       - checkout
       - run:
