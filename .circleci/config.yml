@@ -2,7 +2,7 @@ version: 2.1
 executors:
   circleci-rust-docker:
     docker:
-      - image: circleci/rust:1.44.1
+      - image: circleci/rust:1.49.0
 
 jobs:
   release:

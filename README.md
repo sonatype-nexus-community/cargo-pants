@@ -32,7 +32,7 @@ Don't you check your pants for holes? Similarly, we think you should check your 
 
 ## Requirements
 
-`cargo-pants` was built with Rust 1.31, you should likely start there.
+`cargo-pants` was built with Rust 1.49.0, you should likely start there.
 
 ## Installation
 
