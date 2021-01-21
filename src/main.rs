@@ -85,6 +85,10 @@ fn audit(lockfile_path: String) -> ! {
     }
 
     let api_key: String = get_api_key();
+    if api_key.is_empty() {
+        std::process::exit(1)
+    }
+
     let client = OSSIndexClient::new(api_key);
     let mut coordinates: Vec<Coordinate> = Vec::new();
     for chunk in packages.chunks(128) {
@@ -134,5 +138,16 @@ fn check_pants(n: String) -> ! {
             println!("{}", "Uhhhhh");
             process::exit(1337)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_get_api_key() {
+        let empty_env_value = get_api_key();
+        assert_eq!(empty_env_value, "");
     }
 }
