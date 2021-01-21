@@ -65,7 +65,7 @@ fn get_api_key() -> String {
     let api_key: String = match env::var("OSS_INDEX_API_KEY") {
         Ok(val) => val,
         Err(e) => {
-            println!("Error, 'OSS_INDEX_API_KEY': {}", e);
+            println!("Warning: missing optional 'OSS_INDEX_API_KEY': {}", e);
             "".to_string()
         }
     };
@@ -85,11 +85,6 @@ fn audit(lockfile_path: String) -> ! {
     }
 
     let api_key: String = get_api_key();
-    if api_key.is_empty() {
-        println!("exiting non-zero, should fail");
-        std::process::exit(1)
-    }
-
     let client = OSSIndexClient::new(api_key);
     let mut coordinates: Vec<Coordinate> = Vec::new();
     for chunk in packages.chunks(128) {
@@ -114,6 +109,9 @@ fn audit(lockfile_path: String) -> ! {
             vulnerabilities_count, vul_str
         );
     }
+
+    // show a summary so folks know we are not pantless
+    println!("\nExamined {} components\n", &coordinates.len());
 
     match vulnerabilities_count {
         0 => process::exit(0),
