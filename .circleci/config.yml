@@ -57,3 +57,13 @@ workflows:
             branches:
               only:
                 - master
+
+  build_nightly:
+    triggers:
+      - schedule:
+          cron: "20 20 * * *"
+          filters:
+            branches:
+              only: master
+    jobs:
+      - build
