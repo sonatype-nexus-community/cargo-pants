@@ -86,6 +86,7 @@ fn audit(lockfile_path: String) -> ! {
 
     let api_key: String = get_api_key();
     if api_key.is_empty() {
+        println!("exiting non-zero, should fail");
         std::process::exit(1)
     }
 
