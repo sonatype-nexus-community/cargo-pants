@@ -1,6 +1,6 @@
 use crate::{coordinate::Coordinate, types::OSSINDEX_DIRNAME};
-use std::fmt;
 use pickledb::{error::Error as PickleError, PickleDb, PickleDbDumpPolicy, SerializationMethod};
+use std::fmt;
 use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
@@ -21,7 +21,7 @@ pub struct DBOptions {
 
 pub struct Cache {
     options: Options,
-    db: PickleDb
+    db: PickleDb,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -36,7 +36,7 @@ impl fmt::Display for Cache {
         // Use `self.number` to refer to each positional data point.
         let vals = self.db.get_all();
         let stuff_str: String = vals.into_iter().map(|i| i.to_string()).collect::<String>();
-        write!(f, "keys {}", stuff_str )
+        write!(f, "keys {}", stuff_str)
     }
 }
 
@@ -49,19 +49,27 @@ impl fmt::Display for DBValue {
 
 fn get_db(options: &DBOptions) -> PickleDb {
     let path_buf: PathBuf = get_database_path(&options);
-    let db: Result<PickleDb, PickleError> =
-        PickleDb::load(path_buf, PickleDbDumpPolicy::AutoDump, SerializationMethod::Json);
+    let db: Result<PickleDb, PickleError> = PickleDb::load(
+        path_buf,
+        PickleDbDumpPolicy::AutoDump,
+        SerializationMethod::Json,
+    );
     match db {
         Ok(db) => {
-            return db
+            return db;
         }
         Err(_e) => {
             let path_buf: PathBuf = get_database_path(&options);
-            let new_db: PickleDb = PickleDb::new(path_buf, PickleDbDumpPolicy::AutoDump, SerializationMethod::Json);
+            let new_db: PickleDb = PickleDb::new(
+                path_buf,
+                PickleDbDumpPolicy::AutoDump,
+                SerializationMethod::Json,
+            );
             new_db
         }
     }
 }
+
 fn get_database_path(options: &DBOptions) -> PathBuf {
     let path = PathBuf::from(format!(
         "{}/{}/{}/{}",
@@ -81,7 +89,6 @@ impl Cache {
         cache
     }
 
-
     pub fn clear(&self) {
         // Handle closing
         // get db path and handle error
@@ -94,7 +101,7 @@ impl Cache {
             true => {
                 println!("Found {:?}", &key);
                 let val: Option<DBValue> = self.db.get::<DBValue>(&key);
-                return val
+                return val;
                 // match val {
                 //     Some(val) => {
                 //         if val.ttl < Utc::now() {
@@ -108,7 +115,7 @@ impl Cache {
             }
             false => {
                 println!("Didnt find {:?}", &key);
-                return None
+                return None;
             }
         }
     }
@@ -129,7 +136,7 @@ impl Cache {
             false => {
                 let _res = self.db.set(&db_value.key, &db_value).unwrap();
                 println!("Setting it{:?}", _res);
-                return
+                return;
             }
         }
     }
@@ -138,6 +145,7 @@ impl Cache {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     fn _get_coordinate() -> Coordinate {
         let raw_json: &[u8] = r##"{
             "coordinates": "pkg:pypi/rust@0.1.1",
@@ -147,7 +155,7 @@ mod tests {
         }"##
         .as_bytes();
         let coordinate: Coordinate = serde_json::from_slice(raw_json).unwrap();
-        return coordinate
+        return coordinate;
     }
 
     #[test]
@@ -166,7 +174,7 @@ mod tests {
         let db_value = DBValue {
             key: key.clone(),
             coords: coordinate,
-            ttl: Utc::now()
+            ttl: Utc::now(),
         };
         cache.set(db_value);
         println!("post set cache {}", cache);
