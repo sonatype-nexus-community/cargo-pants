@@ -14,12 +14,12 @@
 #[macro_use]
 extern crate clap;
 
-use std::{
-    env,
-    process,
+use cargo_pants::{
+    client::OSSIndexClient, coordinate::Coordinate, lockfile::Lockfile, package::Package,
 };
-use cargo_pants::{package::Package, lockfile::Lockfile, client::OSSIndexClient, coordinate::Coordinate};
-use clap::{Arg, App, SubCommand};
+use clap::{App, Arg, SubCommand};
+use std::{env, process};
+
 const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
 
 fn main() {
@@ -44,32 +44,37 @@ fn main() {
         )
         .get_matches();
 
+    match matches.subcommand_matches("pants") {
+        None => {
+            println!("Error, this tool is designed to be executed from cargo itself.");
+            println!("Therefore at least the command line parameter 'pants' must be provided.");
+        }
+        Some(pants_matches) => {
+            if pants_matches.is_present("pants_style") {
+                let pants_style = String::from(pants_matches.value_of("pants_style").unwrap());
+                check_pants(pants_style);
+            }
 
-    let pants_matches = matches.subcommand_matches("pants").unwrap();
+            let lockfile = pants_matches.value_of("lockfile").unwrap();
 
-    if pants_matches.is_present("pants_style") {
-        let pants_style = String::from(pants_matches.value_of("pants_style").unwrap());
-        check_pants(pants_style);
+            audit(lockfile.to_string());
+        }
     }
-
-    let lockfile = pants_matches.value_of("lockfile").unwrap();
-
-    audit(lockfile.to_string());
 }
 
 fn get_api_key() -> String {
-    let api_key:String = match env::var("OSS_INDEX_API_KEY") {
+    let api_key: String = match env::var("OSS_INDEX_API_KEY") {
         Ok(val) => val,
         Err(e) => {
-            println!("{}", e);
+            println!("Warning: missing optional 'OSS_INDEX_API_KEY': {}", e);
             "".to_string()
         }
     };
-    return api_key
+    return api_key;
 }
 
 fn audit(lockfile_path: String) -> ! {
-    let lockfile : Lockfile = Lockfile::load(lockfile_path).unwrap_or_else(|e| {
+    let lockfile: Lockfile = Lockfile::load(lockfile_path).unwrap_or_else(|e| {
         println!("{}", e);
         process::exit(3);
     });
@@ -80,7 +85,7 @@ fn audit(lockfile_path: String) -> ! {
         println!("{}", package);
     }
 
-    let api_key:String = get_api_key();
+    let api_key: String = get_api_key();
     let client = OSSIndexClient::new(api_key);
     let mut coordinates: Vec<Coordinate> = Vec::new();
     for chunk in packages.chunks(128) {
@@ -100,13 +105,30 @@ fn audit(lockfile_path: String) -> ! {
     }
 
     if !vul_str.is_empty() {
-        println!("\nVulnerabilities Count - {}\n{}", vulnerabilities_count, vul_str);
+        println!(
+            "\nVulnerabilities Count - {}\n{}",
+            vulnerabilities_count, vul_str
+        );
     }
+
+    // show a summary so folks know we are not pantless
+    println!(
+        "{}",
+        get_summary_message(coordinates.len() as u32, vulnerabilities_count)
+    );
 
     match vulnerabilities_count {
         0 => process::exit(0),
-        _ => process::exit(3)
+        _ => process::exit(3),
     }
+}
+
+fn get_summary_message(component_count: u32, vulnerability_count: u32) -> String {
+    let message = format!(
+        "\nAudited Dependencies: {}\nVulnerable Dependencies: {}\n",
+        component_count, vulnerability_count
+    );
+    return message;
 }
 
 fn check_pants(n: String) -> ! {
@@ -126,6 +148,26 @@ fn check_pants(n: String) -> ! {
         _ => {
             println!("{}", "Uhhhhh");
             process::exit(1337)
-        },
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_get_api_key() {
+        let empty_env_value = get_api_key();
+        assert_eq!(empty_env_value, "");
+    }
+
+    #[test]
+    fn get_summary_message_content() {
+        let summary_message = get_summary_message(2, 1);
+        assert_eq!(
+            summary_message,
+            "\nAudited Dependencies: 2\nVulnerable Dependencies: 1\n"
+        );
     }
 }

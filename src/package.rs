@@ -1,4 +1,3 @@
-
 // Copyright 2019 Glenn Mohre.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -33,7 +32,7 @@ pub struct Package {
 
     /// Dependencies of this crate
     #[serde(default)]
-    pub dependencies: Vec<String>
+    pub dependencies: Vec<String>,
 }
 
 impl Package {

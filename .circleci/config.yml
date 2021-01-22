@@ -1,0 +1,75 @@
+version: 2.1
+executors:
+  circleci-rust-docker:
+    docker:
+      - image: circleci/rust:1.49.0
+
+jobs:
+  release:
+    executor: circleci-rust-docker
+    steps:
+      - add_ssh_keys:
+          fingerprints:
+            - "ca:b3:cd:ca:06:0d:42:99:78:27:26:e2:5b:b7:94:a3"
+      - checkout
+      - run:
+          name: Run publish
+          command: .circleci/ci-publish.sh
+
+  build:
+    executor: circleci-rust-docker
+    steps:
+      - checkout
+      - run:
+          name: Version information
+          command: rustc --version; cargo --version; rustup --version
+      - run:
+          name: Calculate dependencies
+          command: cargo generate-lockfile
+      - restore_cache:
+          key: cargo-pants-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
+      - run:
+          name: Check formatting
+          command: cargo fmt -- --check
+      - run:
+          name: Build all targets
+          command: cargo build --all --all-targets
+      - save_cache:
+          key: cargo-pants-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
+          paths:
+            - "~/.cargo"
+            - "./target"
+      - run:
+          name: Run all tests
+          command: cargo test --all
+      - run: 
+          name: Dogfood with locally built Cargo Pants
+          command: ./target/debug/cargo-pants pants
+      - run:
+          name: Install Cargo Pants as Cargo Subcommand
+          command: cargo install cargo-pants --force
+      - run:
+          name: Dogfood Cargo Pants
+          command: cargo pants
+
+workflows:
+  version: 2
+  build_and_release:
+    jobs:
+      - build
+      - release:
+          context: cargo-pants
+          filters:
+            branches:
+              only:
+                - master
+
+  build_nightly:
+    triggers:
+      - schedule:
+          cron: "20 20 * * *"
+          filters:
+            branches:
+              only: master
+    jobs:
+      - build
