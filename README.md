@@ -15,7 +15,7 @@ limitations under the License.
 -->
 
 <p align="center">
-    <img src="https://github.com/sonatype-nexus-community/cargo-pants/blob/master/docs/images/pants.png" width="350"/>
+    <img src="https://raw.githubusercontent.com/sonatype-nexus-community/cargo-pants/master/docs/images/pants.png" width="350"/>
 </p>
 <p align="center">
     <a href="https://circleci.com/gh/sonatype-nexus-community/cargo-pants"><img src="https://circleci.com/gh/sonatype-nexus-community/cargo-pants.svg?style=shield" alt="Circle CI Build Status"></img></a>
@@ -32,7 +32,7 @@ Don't you check your pants for holes? Similarly, we think you should check your 
 
 ## Requirements
 
-`cargo-pants` was built with Rust 1.31, you should likely start there.
+`cargo-pants` was built with Rust 1.49.0, you should likely start there.
 
 ## Installation
 
