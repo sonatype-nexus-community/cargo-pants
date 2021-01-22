@@ -43,7 +43,6 @@ impl fmt::Display for Vulnerability {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mockito;
 
     #[test]
     fn test_parse_bytes() {
