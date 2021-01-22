@@ -19,6 +19,7 @@ use cargo_pants::{
 };
 use clap::{App, Arg, SubCommand};
 use std::{env, process};
+
 const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
 
 fn main() {
@@ -111,12 +112,18 @@ fn audit(lockfile_path: String) -> ! {
     }
 
     // show a summary so folks know we are not pantless
-    println!("\nExamined {} components\n", &coordinates.len());
+    println!("{}", get_summary_message(coordinates.len() as u32, vulnerabilities_count));
 
     match vulnerabilities_count {
         0 => process::exit(0),
         _ => process::exit(3),
     }
+}
+
+fn get_summary_message(component_count: u32, vulnerability_count: u32) -> String {
+    let message = format!("\nAudited Dependencies: {}\nVulnerable Dependencies: {}\n",
+                          component_count, vulnerability_count);
+    return message;
 }
 
 fn check_pants(n: String) -> ! {
@@ -148,5 +155,11 @@ mod tests {
     fn empty_get_api_key() {
         let empty_env_value = get_api_key();
         assert_eq!(empty_env_value, "");
+    }
+
+    #[test]
+    fn get_summary_message_content() {
+        let summary_message = get_summary_message(2, 1);
+        assert_eq!(summary_message, "\nAudited Dependencies: 2\nVulnerable Dependencies: 1\n");
     }
 }
