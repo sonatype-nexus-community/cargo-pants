@@ -84,6 +84,9 @@ script:
   - cargo pants
 ```
 
+We use [CircleCI](https://circleci.com) to build this project. See our CircleCI config: [.circleci/config.yml](.circleci/config.yml)
+for how we use cargo-pants in our CI build. This file is also a good reference for a number of useful cargo commands.
+
 ## Contributing
 
 We care a lot about making the world a safer place, and that's why we created `cargo-pants`. If you as well want to
