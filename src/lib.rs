@@ -13,9 +13,6 @@
 // limitations under the License.
 #![allow(dead_code)]
 
-extern crate clap;
-extern crate futures;
-extern crate reqwest;
 extern crate serde;
 extern crate url;
 
@@ -24,7 +21,6 @@ extern crate serde_derive;
 extern crate env_logger;
 extern crate log;
 extern crate serde_json;
-extern crate tokio_core;
 
 pub mod client;
 pub mod coordinate;
