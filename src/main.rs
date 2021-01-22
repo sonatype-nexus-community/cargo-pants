@@ -112,7 +112,10 @@ fn audit(lockfile_path: String) -> ! {
     }
 
     // show a summary so folks know we are not pantless
-    println!("{}", get_summary_message(coordinates.len() as u32, vulnerabilities_count));
+    println!(
+        "{}",
+        get_summary_message(coordinates.len() as u32, vulnerabilities_count)
+    );
 
     match vulnerabilities_count {
         0 => process::exit(0),
@@ -121,8 +124,10 @@ fn audit(lockfile_path: String) -> ! {
 }
 
 fn get_summary_message(component_count: u32, vulnerability_count: u32) -> String {
-    let message = format!("\nAudited Dependencies: {}\nVulnerable Dependencies: {}\n",
-                          component_count, vulnerability_count);
+    let message = format!(
+        "\nAudited Dependencies: {}\nVulnerable Dependencies: {}\n",
+        component_count, vulnerability_count
+    );
     return message;
 }
 
@@ -160,6 +165,9 @@ mod tests {
     #[test]
     fn get_summary_message_content() {
         let summary_message = get_summary_message(2, 1);
-        assert_eq!(summary_message, "\nAudited Dependencies: 2\nVulnerable Dependencies: 1\n");
+        assert_eq!(
+            summary_message,
+            "\nAudited Dependencies: 2\nVulnerable Dependencies: 1\n"
+        );
     }
 }
