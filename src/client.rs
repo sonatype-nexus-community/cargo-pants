@@ -91,10 +91,7 @@ impl OSSIndexClient {
 
 impl UrlMaker {
     pub fn new(api_base: String, api_key: String) -> UrlMaker {
-        UrlMaker {
-            api_base: api_base,
-            api_key: api_key,
-        }
+        UrlMaker { api_base, api_key }
     }
 
     fn build_url(&self, path: &str) -> Result<Url, url::ParseError> {
@@ -114,17 +111,20 @@ impl UrlMaker {
 mod tests {
     use super::*;
     use mockito::mock;
+
     extern crate env_logger;
 
     fn init_logger() {
         let _ = env_logger::builder().is_test(true).try_init();
     }
+
     #[test]
     fn new_ossindexclient() {
         let key = String::from("ALL_YOUR_KEY");
         let client = OSSIndexClient::new(key);
         assert_eq!(client.url_maker.api_key, "ALL_YOUR_KEY");
     }
+
     #[test]
     fn new_urlmaker() {
         let api_base = "https://allyourbase.api/api/v3/";
@@ -132,6 +132,18 @@ mod tests {
         let urlmaker = UrlMaker::new(api_base.to_string(), api_key.to_string());
         assert_eq!(urlmaker.api_base, api_base);
         assert_eq!(urlmaker.api_key, api_key);
+    }
+
+    #[test]
+    fn component_report_url_with_empty_apikey() {
+        let api_base = "https://allyourbase.api/api/v3/";
+        let api_key = "";
+        let urlmaker = UrlMaker::new(api_base.to_string(), api_key.to_string());
+        let report_url = urlmaker.component_report_url();
+        assert_eq!(
+            report_url.as_str(),
+            "https://allyourbase.api/api/v3/component-report?api_key="
+        );
     }
 
     #[test]
@@ -161,6 +173,7 @@ mod tests {
         };
         return package;
     }
+
     #[test]
     fn test_post_json() {
         init_logger();
@@ -195,6 +208,7 @@ mod tests {
         }
         mock.assert();
     }
+
     fn test_component_report_json() -> &'static [u8] {
         return r##"[{
             "coordinates": "pkg:cargo/claxon@0.3.0",

@@ -7,7 +7,6 @@ readme = "README.md"
 repository = "https://github.com/sonatype-nexus-community/cargo-pants"
 description = "cargo-pants is a cargo subcommand application that provides a bill of materials and a list of which dependencies have a vulnerability, powered by Sonatype OSSIndex"
 license = "Apache-2.0"
-license_file = "LICENSE"
 
 [dependencies]
 atty = "0.2"
