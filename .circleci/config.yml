@@ -60,11 +60,11 @@ workflows:
       - release:
           context: cargo-pants
           filters:
-            requires:
-              - build
             branches:
               only:
                 - master
+          requires:
+            - build
 
   build_nightly:
     triggers:
