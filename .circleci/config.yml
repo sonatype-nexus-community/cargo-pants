@@ -60,6 +60,8 @@ workflows:
       - release:
           context: cargo-pants
           filters:
+            requires:
+              - build
             branches:
               only:
                 - master
