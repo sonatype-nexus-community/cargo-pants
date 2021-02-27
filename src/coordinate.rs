@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct Coordinate {
     #[serde(rename(deserialize = "coordinates"))]
     pub purl: String,
@@ -9,6 +9,12 @@ pub struct Coordinate {
     pub reference: String,
     #[serde(default)]
     pub vulnerabilities: Vec<Vulnerability>,
+}
+
+impl Coordinate {
+    pub fn has_vulnerabilities(&self) -> bool {
+        self.vulnerabilities.len() > 0
+    }
 }
 
 impl fmt::Display for Coordinate {
@@ -21,7 +27,7 @@ impl fmt::Display for Coordinate {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Vulnerability {
     pub title: String,
@@ -59,5 +65,18 @@ mod tests {
             "https://ossindex.sonatype.org/component/pkg:pypi/rust@0.1.1"
         );
         assert_eq!(coordinate.description, "Ribo-Seq Unit Step Transformation");
+    }
+
+    #[test]
+    fn test_has_no_vulnerabilities() {
+        let coordinate = Coordinate::default();
+        assert_eq!(coordinate.has_vulnerabilities(), false);
+    }
+
+    #[test]
+    fn test_has_vulnerabilities() {
+        let mut coordinate = Coordinate::default();
+        coordinate.vulnerabilities.push(Vulnerability::default());
+        assert_eq!(coordinate.has_vulnerabilities(), true);
     }
 }

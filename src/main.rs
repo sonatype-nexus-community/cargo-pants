@@ -41,6 +41,11 @@ fn main() {
                 .long("pants_style")
                 .takes_value(true)
                 .help("Your pants style"))
+            .arg(Arg::with_name("loud")
+                .short("v")
+                .long("loud")
+                .takes_value(false)
+                .help("Also show non-vulnerable dependencies"))
         )
         .get_matches();
 
@@ -56,8 +61,9 @@ fn main() {
             }
 
             let lockfile = pants_matches.value_of("lockfile").unwrap();
+            let verbose_output = pants_matches.is_present("loud");
 
-            audit(lockfile.to_string());
+            audit(lockfile.to_string(), verbose_output);
         }
     }
 }
@@ -73,17 +79,16 @@ fn get_api_key() -> String {
     return api_key;
 }
 
-fn audit(lockfile_path: String) -> ! {
+fn audit(lockfile_path: String, verbose_output: bool) -> ! {
     let lockfile: Lockfile = Lockfile::load(lockfile_path).unwrap_or_else(|e| {
         println!("{}", e);
         process::exit(3);
     });
 
-    println!("\nBill of Materials Header\n");
     let packages: Vec<Package> = lockfile.packages.clone();
-    for package in &packages {
-        println!("{}", package);
-    }
+    // for package in &packages {
+    //     println!("{}", package);
+    // }
 
     let api_key: String = get_api_key();
     let client = OSSIndexClient::new(api_key);
@@ -92,34 +97,63 @@ fn audit(lockfile_path: String) -> ! {
         coordinates.append(&mut client.post_coordinates(chunk.to_vec()));
     }
 
-    let mut vulnerabilities_count: u32 = 0;
-    let mut vul_str = String::new();
+    let mut non_vulnerable_package_count: u32 = 0;
+    let mut vulnerable_package_count: u32 = 0;
 
     for coordinate in &coordinates {
-        for v in &coordinate.vulnerabilities {
-            if !v.title.is_empty() {
-                vul_str.push_str(&format!("\nVulnerability - {}\n{}\n", coordinate.purl, v));
-            }
+        if coordinate.has_vulnerabilities() {
+            vulnerable_package_count += 1;
+        } else {
+            non_vulnerable_package_count += 1;
         }
-        vulnerabilities_count = vulnerabilities_count + coordinate.vulnerabilities.len() as u32;
     }
 
-    if !vul_str.is_empty() {
-        println!(
-            "\nVulnerabilities Count - {}\n{}",
-            vulnerabilities_count, vul_str
-        );
+    if verbose_output {
+        write_package_output(&coordinates, non_vulnerable_package_count, false);
+    }
+
+    if vulnerable_package_count > 0 {
+        write_package_output(&coordinates, vulnerable_package_count, true);
     }
 
     // show a summary so folks know we are not pantless
     println!(
         "{}",
-        get_summary_message(coordinates.len() as u32, vulnerabilities_count)
+        get_summary_message(coordinates.len() as u32, vulnerable_package_count)
     );
 
-    match vulnerabilities_count {
+    match vulnerable_package_count {
         0 => process::exit(0),
         _ => process::exit(3),
+    }
+}
+
+fn write_package_output(coordinates: &Vec<Coordinate>, package_count: u32, vulnerable: bool) {
+    let vulnerability = match vulnerable {
+        true => "Vulnerable",
+        false => "Non-vulnerable",
+    };
+    println!("\n{} Dependencies\n", vulnerability);
+
+    for (index, coordinate) in coordinates
+        .iter()
+        .filter(|c| vulnerable == c.has_vulnerabilities())
+        .enumerate()
+    {
+        println!("[{}/{}] {}", index + 1, package_count, coordinate.purl);
+        if vulnerable {
+            let vulnerability_count = coordinate.vulnerabilities.len();
+            let plural_text = match vulnerability_count {
+                1 => "vulnerability",
+                _ => "vulnerabilities",
+            };
+            println!("{} known {} found\n", vulnerability_count, plural_text);
+            for vulnerability in &coordinate.vulnerabilities {
+                if !vulnerability.title.is_empty() {
+                    println!("{}\n", vulnerability);
+                }
+            }
+        }
     }
 }
 
