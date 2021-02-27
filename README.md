@@ -52,7 +52,7 @@ $ cargo pants
 
 ## Usage
 
-`cargo pants` can be run in your builds context, or ran separately. Two command line flags are supported:
+`cargo pants` can be run in your builds context, or ran separately. Two command line options are supported:
 
 ```
 $ cargo pants --lockfile /path/to/Cargo.lock
@@ -60,7 +60,7 @@ $ cargo pants --lockfile /path/to/Cargo.lock
 
 This allows you to run `cargo pants` on a `Cargo.lock` file anywhere on your filesystem.
 
-If this flag is not supplied, `cargo pants` will assume a local `Cargo.lock` file.
+If this option is not supplied, `cargo pants` will assume a local `Cargo.lock` file.
 
 We will also inform you of our opinions of your pants style choice:
 
@@ -69,6 +69,11 @@ $ cargo pants --pants_style JNCO
 ```
 
 We are very serious about pants.
+
+There is also the option to show all non-vulnerable dependencies for a complete Bill of Materials.
+```
+$ cargo pants --loud --lockfile /path/to/Cargo.lock
+```
 
 If vulnerabilities are found, `cargo-pants` exits with status code 3, and prints the Bill Of Materials/Found Vulnerabilities. If there are no issues, it will exit with status code 0.
 
