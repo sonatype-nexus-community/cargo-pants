@@ -18,7 +18,8 @@ use cargo_pants::{
     client::OSSIndexClient, coordinate::Coordinate, lockfile::Lockfile, package::Package,
 };
 use clap::{App, Arg, SubCommand};
-use std::{env, process};
+use std::io::{stdout, Write};
+use std::{env, io, process};
 
 const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
 
@@ -41,6 +42,11 @@ fn main() {
                 .long("pants_style")
                 .takes_value(true)
                 .help("Your pants style"))
+            .arg(Arg::with_name("loud")
+                .short("v")
+                .long("loud")
+                .takes_value(false)
+                .help("Also show non-vulnerable dependencies"))
         )
         .get_matches();
 
@@ -56,8 +62,9 @@ fn main() {
             }
 
             let lockfile = pants_matches.value_of("lockfile").unwrap();
+            let verbose_output = pants_matches.is_present("loud");
 
-            audit(lockfile.to_string());
+            audit(lockfile.to_string(), verbose_output);
         }
     }
 }
@@ -73,18 +80,13 @@ fn get_api_key() -> String {
     return api_key;
 }
 
-fn audit(lockfile_path: String) -> ! {
+fn audit(lockfile_path: String, verbose_output: bool) -> ! {
     let lockfile: Lockfile = Lockfile::load(lockfile_path).unwrap_or_else(|e| {
         println!("{}", e);
         process::exit(3);
     });
 
-    println!("\nBill of Materials Header\n");
     let packages: Vec<Package> = lockfile.packages.clone();
-    for package in &packages {
-        println!("{}", package);
-    }
-
     let api_key: String = get_api_key();
     let client = OSSIndexClient::new(api_key);
     let mut coordinates: Vec<Coordinate> = Vec::new();
@@ -92,35 +94,88 @@ fn audit(lockfile_path: String) -> ! {
         coordinates.append(&mut client.post_coordinates(chunk.to_vec()));
     }
 
-    let mut vulnerabilities_count: u32 = 0;
-    let mut vul_str = String::new();
+    let mut non_vulnerable_package_count: u32 = 0;
+    let mut vulnerable_package_count: u32 = 0;
 
     for coordinate in &coordinates {
-        for v in &coordinate.vulnerabilities {
-            if !v.title.is_empty() {
-                vul_str.push_str(&format!("\nVulnerability - {}\n{}\n", coordinate.purl, v));
-            }
+        if coordinate.has_vulnerabilities() {
+            vulnerable_package_count += 1;
+        } else {
+            non_vulnerable_package_count += 1;
         }
-        vulnerabilities_count = vulnerabilities_count + coordinate.vulnerabilities.len() as u32;
     }
 
-    if !vul_str.is_empty() {
-        println!(
-            "\nVulnerabilities Count - {}\n{}",
-            vulnerabilities_count, vul_str
-        );
+    let mut stdout = stdout();
+    if verbose_output {
+        write_package_output(
+            &mut stdout,
+            &coordinates,
+            non_vulnerable_package_count,
+            false,
+        )
+        .expect("Error writing non-vulnerable packages to output");
+    }
+
+    if vulnerable_package_count > 0 {
+        write_package_output(&mut stdout, &coordinates, vulnerable_package_count, true)
+            .expect("Error writing vulnerable packages to output");
     }
 
     // show a summary so folks know we are not pantless
     println!(
         "{}",
-        get_summary_message(coordinates.len() as u32, vulnerabilities_count)
+        get_summary_message(coordinates.len() as u32, vulnerable_package_count)
     );
 
-    match vulnerabilities_count {
+    match vulnerable_package_count {
         0 => process::exit(0),
         _ => process::exit(3),
     }
+}
+
+fn write_package_output(
+    output: &mut dyn Write,
+    coordinates: &Vec<Coordinate>,
+    package_count: u32,
+    vulnerable: bool,
+) -> io::Result<()> {
+    let vulnerability = match vulnerable {
+        true => "Vulnerable",
+        false => "Non-vulnerable",
+    };
+    writeln!(output, "\n{} Dependencies\n", vulnerability)?;
+
+    for (index, coordinate) in coordinates
+        .iter()
+        .filter(|c| vulnerable == c.has_vulnerabilities())
+        .enumerate()
+    {
+        writeln!(
+            output,
+            "[{}/{}] {}",
+            index + 1,
+            package_count,
+            coordinate.purl
+        )?;
+        if vulnerable {
+            let vulnerability_count = coordinate.vulnerabilities.len();
+            let plural_text = match vulnerability_count {
+                1 => "vulnerability",
+                _ => "vulnerabilities",
+            };
+            writeln!(
+                output,
+                "{} known {} found\n",
+                vulnerability_count, plural_text
+            )?;
+            for vulnerability in &coordinate.vulnerabilities {
+                if !vulnerability.title.is_empty() {
+                    writeln!(output, "{}\n", vulnerability)?;
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 fn get_summary_message(component_count: u32, vulnerability_count: u32) -> String {
@@ -155,11 +210,70 @@ fn check_pants(n: String) -> ! {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use cargo_pants::Vulnerability;
 
     #[test]
     fn empty_get_api_key() {
         let empty_env_value = get_api_key();
         assert_eq!(empty_env_value, "");
+    }
+
+    fn setup_test_coordinates() -> (Vec<Coordinate>, u32) {
+        let mut coordinates: Vec<Coordinate> = Vec::new();
+
+        let mut coord1 = Coordinate::default();
+        coord1.purl = "coord one purl-1vuln".to_owned();
+        let mut coord1_vuln1 = Vulnerability::default();
+        coord1_vuln1.title = "coord1-vuln1 title".to_owned();
+        coord1.vulnerabilities.push(coord1_vuln1);
+        coordinates.push(coord1);
+
+        let mut coord2 = Coordinate::default();
+        coord2.purl = "coord two purl-3vulns".to_owned();
+        let mut coord2_vuln1 = Vulnerability::default();
+        coord2_vuln1.title = "coord2-vuln1 title".to_owned();
+        coord2.vulnerabilities.push(coord2_vuln1);
+
+        // empty title for vuln_two is intentional
+        coord2.vulnerabilities.push(Vulnerability::default());
+
+        let mut coord2_vuln3 = Vulnerability::default();
+        coord2_vuln3.title = "coord2-vuln3 title".to_owned();
+        coord2.vulnerabilities.push(coord2_vuln3);
+        coordinates.push(coord2);
+
+        let mut coordinate_three = Coordinate::default();
+        coordinate_three.purl = "coord three purl-no vulns".to_owned();
+        coordinates.push(coordinate_three);
+
+        let package_count = coordinates.len() as u32;
+        return (coordinates, package_count);
+    }
+
+    fn convert_output(output: &Vec<u8>) -> &str {
+        std::str::from_utf8(output.as_slice()).unwrap()
+    }
+
+    #[test]
+    fn write_package_output_non_vulnerable() {
+        let (coordinates, package_count) = setup_test_coordinates();
+        let mut package_output = Vec::new();
+        write_package_output(&mut package_output, &coordinates, package_count, false).unwrap();
+        assert_eq!(
+            convert_output(&package_output),
+            "\nNon-vulnerable Dependencies\n\n[1/3] coord three purl-no vulns\n"
+        );
+    }
+
+    #[test]
+    fn write_package_output_vulnerable() {
+        let (coordinates, package_count) = setup_test_coordinates();
+        let mut package_output = Vec::new();
+        write_package_output(&mut package_output, &coordinates, package_count, true).unwrap();
+        assert_eq!(
+           convert_output(&package_output),
+           "\nVulnerable Dependencies\n\n[1/3] coord one purl-1vuln\n1 known vulnerability found\n\ncoord1-vuln1 title\n\n0\n\n\n\n[2/3] coord two purl-3vulns\n3 known vulnerabilities found\n\ncoord2-vuln1 title\n\n0\n\n\n\ncoord2-vuln3 title\n\n0\n\n\n\n"
+       );
     }
 
     #[test]
