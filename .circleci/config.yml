@@ -62,7 +62,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
           requires:
             - build
 
@@ -72,6 +72,6 @@ workflows:
           cron: "50 20 * * *"
           filters:
             branches:
-              only: master
+              only: main
     jobs:
       - build
