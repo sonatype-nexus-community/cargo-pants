@@ -119,6 +119,7 @@ fn audit(lockfile_path: String, verbose_output: bool, enable_color: bool) -> ! {
             non_vulnerable_package_count,
             false,
             enable_color,
+            None,
         )
         .expect("Error writing non-vulnerable packages to output");
     }
@@ -130,6 +131,7 @@ fn audit(lockfile_path: String, verbose_output: bool, enable_color: bool) -> ! {
             vulnerable_package_count,
             true,
             enable_color,
+            None,
         )
         .expect("Error writing vulnerable packages to output");
     }
@@ -152,6 +154,7 @@ fn write_package_output(
     package_count: u32,
     vulnerable: bool,
     enable_color: bool,
+    width_override: Option<u16>
 ) -> io::Result<()> {
     use ansi_term::{Color, Style};
 
@@ -205,7 +208,7 @@ fn write_package_output(
             for vulnerability in &coordinate.vulnerabilities {
                 if !vulnerability.title.is_empty() {
                     vulnerability
-                        .output_table(output, enable_color)
+                        .output_table(output, enable_color, width_override)
                         .expect("Unable to output Vulnerability details");
                     writeln!(output, "\n")?;
                 }
@@ -301,6 +304,7 @@ mod tests {
             package_count,
             false,
             false,
+            Some(30)
         )
         .unwrap();
         assert_eq!(
@@ -311,6 +315,9 @@ mod tests {
 
     #[test]
     fn write_package_output_vulnerable() {
+
+
+
         let (coordinates, package_count) = setup_test_coordinates();
         let mut package_output = Vec::new();
         write_package_output(
@@ -319,11 +326,47 @@ mod tests {
             package_count,
             true,
             false,
+            Some(30),
         )
         .unwrap();
         assert_eq!(
            convert_output(&package_output),
-           "\nVulnerable Dependencies\n\n[1/3] coord one purl-1vuln\n1 known vulnerability found\n\ncoord1-vuln1 title\n\n0\n\n\n\n[2/3] coord two purl-3vulns\n3 known vulnerabilities found\n\ncoord2-vuln1 title\n\n0\n\n\n\ncoord2-vuln3 title\n\n0\n\n\n\n"
+           "\nVulnerable Dependencies\n\n[1/3] coord one purl-1vuln\n1 known vulnerability found\n\
+           ╭────────────────────────────╮\
+           │ coord1-vuln1 title         │\
+           ├─────────────┬──────────────┤\
+           │ Description ┆              │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │  CVSS Score ┆ 0            │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │ CVSS Vector ┆              │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │   Reference ┆              │\
+           ╰─────────────┴──────────────╯\
+           \n\n[2/3] coord two purl-3vulns\n3 known vulnerabilities found\n\
+           ╭────────────────────────────╮\
+           │ coord2-vuln1 title         │\
+           ├─────────────┬──────────────┤\
+           │ Description ┆              │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │  CVSS Score ┆ 0            │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │ CVSS Vector ┆              │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │   Reference ┆              │\
+           ╰─────────────┴──────────────╯\n\n\
+           ╭────────────────────────────╮\
+           │ coord2-vuln3 title         │\
+           ├─────────────┬──────────────┤\
+           │ Description ┆              │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │  CVSS Score ┆ 0            │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │ CVSS Vector ┆              │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │   Reference ┆              │\
+           ╰─────────────┴──────────────╯\
+           \n\n"
        );
     }
 
