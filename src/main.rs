@@ -154,7 +154,7 @@ fn write_package_output(
     package_count: u32,
     vulnerable: bool,
     enable_color: bool,
-    width_override: Option<u16>
+    width_override: Option<u16>,
 ) -> io::Result<()> {
     use ansi_term::{Color, Style};
 
@@ -304,7 +304,7 @@ mod tests {
             package_count,
             false,
             false,
-            Some(30)
+            Some(30),
         )
         .unwrap();
         assert_eq!(
@@ -315,9 +315,6 @@ mod tests {
 
     #[test]
     fn write_package_output_vulnerable() {
-
-
-
         let (coordinates, package_count) = setup_test_coordinates();
         let mut package_output = Vec::new();
         write_package_output(
