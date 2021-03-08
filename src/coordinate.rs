@@ -1,5 +1,5 @@
-use std::fmt;
 use crate::Vulnerability;
+use std::fmt;
 
 #[derive(Debug, Default, Deserialize)]
 pub struct Coordinate {
@@ -41,13 +41,11 @@ impl Coordinate {
 
         let color: Option<Color> = self.get_threat_color();
         match color {
-            Some(value) => {
-                match self.get_threat_score() {
-                    9..=10 => value.bold(),
-                    _ => value.normal(),
-                }
+            Some(value) => match self.get_threat_score() {
+                9..=10 => value.bold(),
+                _ => value.normal(),
             },
-            None => Style::default()
+            None => Style::default(),
         }
     }
 }
