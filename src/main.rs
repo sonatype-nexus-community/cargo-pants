@@ -105,6 +105,8 @@ fn audit(lockfile_path: String, verbose_output: bool) -> ! {
         }
     }
 
+    banner();
+
     let mut stdout = stdout();
     if verbose_output {
         write_package_output(
@@ -131,6 +133,11 @@ fn audit(lockfile_path: String, verbose_output: bool) -> ! {
         0 => process::exit(0),
         _ => process::exit(3),
     }
+}
+
+fn banner() {
+    println!("{}", std::include_str!("banner.txt"));
+    println!("{} version: {}", crate_name!(), crate_version!());
 }
 
 fn write_package_output(
