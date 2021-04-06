@@ -105,10 +105,10 @@ fn audit(lockfile_path: String, verbose_output: bool) -> ! {
         }
     }
 
-    banner();
-
     let mut stdout = stdout();
     if verbose_output {
+        banner();
+
         write_package_output(
             &mut stdout,
             &coordinates,
