@@ -47,6 +47,11 @@ fn main() {
                 .long("loud")
                 .takes_value(false)
                 .help("Also show non-vulnerable dependencies"))
+            .arg(Arg::with_name("no-color")
+                .short("m")
+                .long("no-color")
+                .takes_value(false)
+                .help("Disable color output"))
         )
         .get_matches();
 
@@ -63,13 +68,14 @@ fn main() {
 
             let lockfile = pants_matches.value_of("lockfile").unwrap();
             let verbose_output = pants_matches.is_present("loud");
+            let enable_color: bool = !pants_matches.is_present("no-color");
 
-            audit(lockfile.to_string(), verbose_output);
+            audit(lockfile.to_string(), verbose_output, enable_color);
         }
     }
 }
 
-fn get_api_key() -> String {
+pub fn get_api_key() -> String {
     let api_key: String = match env::var("OSS_INDEX_API_KEY") {
         Ok(val) => val,
         Err(e) => {
@@ -80,7 +86,7 @@ fn get_api_key() -> String {
     return api_key;
 }
 
-fn audit(lockfile_path: String, verbose_output: bool) -> ! {
+fn audit(lockfile_path: String, verbose_output: bool, enable_color: bool) -> ! {
     let lockfile: Lockfile = Lockfile::load(lockfile_path).unwrap_or_else(|e| {
         println!("{}", e);
         process::exit(3);
@@ -114,13 +120,22 @@ fn audit(lockfile_path: String, verbose_output: bool) -> ! {
             &coordinates,
             non_vulnerable_package_count,
             false,
+            enable_color,
+            None,
         )
         .expect("Error writing non-vulnerable packages to output");
     }
 
     if vulnerable_package_count > 0 {
-        write_package_output(&mut stdout, &coordinates, vulnerable_package_count, true)
-            .expect("Error writing vulnerable packages to output");
+        write_package_output(
+            &mut stdout,
+            &coordinates,
+            vulnerable_package_count,
+            true,
+            enable_color,
+            None,
+        )
+        .expect("Error writing vulnerable packages to output");
     }
 
     // show a summary so folks know we are not pantless
@@ -145,7 +160,11 @@ fn write_package_output(
     coordinates: &Vec<Coordinate>,
     package_count: u32,
     vulnerable: bool,
+    enable_color: bool,
+    width_override: Option<u16>,
 ) -> io::Result<()> {
+    use ansi_term::{Color, Style};
+
     let vulnerability = match vulnerable {
         true => "Vulnerable",
         false => "Non-vulnerable",
@@ -157,27 +176,48 @@ fn write_package_output(
         .filter(|c| vulnerable == c.has_vulnerabilities())
         .enumerate()
     {
-        writeln!(
-            output,
-            "[{}/{}] {}",
-            index + 1,
-            package_count,
-            coordinate.purl
-        )?;
+        let style: Style = match vulnerable {
+            true => Color::Red.bold(),
+            false => Color::Green.normal(),
+        };
+
+        if enable_color {
+            writeln!(
+                output,
+                "[{}/{}] {}",
+                index + 1,
+                package_count,
+                style.paint(&coordinate.purl)
+            )?;
+        } else {
+            writeln!(
+                output,
+                "[{}/{}] {}",
+                index + 1,
+                package_count,
+                &coordinate.purl
+            )?;
+        }
         if vulnerable {
             let vulnerability_count = coordinate.vulnerabilities.len();
             let plural_text = match vulnerability_count {
                 1 => "vulnerability",
                 _ => "vulnerabilities",
             };
-            writeln!(
-                output,
-                "{} known {} found\n",
-                vulnerability_count, plural_text
-            )?;
+
+            let text = format!("{} known {} found", vulnerability_count, plural_text);
+            if enable_color {
+                writeln!(output, "{}", Color::Red.paint(text))?;
+            } else {
+                writeln!(output, "{}", text)?;
+            }
+
             for vulnerability in &coordinate.vulnerabilities {
                 if !vulnerability.title.is_empty() {
-                    writeln!(output, "{}\n", vulnerability)?;
+                    vulnerability
+                        .output_table(output, enable_color, width_override)
+                        .expect("Unable to output Vulnerability details");
+                    writeln!(output, "\n")?;
                 }
             }
         }
@@ -265,7 +305,15 @@ mod tests {
     fn write_package_output_non_vulnerable() {
         let (coordinates, package_count) = setup_test_coordinates();
         let mut package_output = Vec::new();
-        write_package_output(&mut package_output, &coordinates, package_count, false).unwrap();
+        write_package_output(
+            &mut package_output,
+            &coordinates,
+            package_count,
+            false,
+            false,
+            Some(30),
+        )
+        .unwrap();
         assert_eq!(
             convert_output(&package_output),
             "\nNon-vulnerable Dependencies\n\n[1/3] coord three purl-no vulns\n"
@@ -276,10 +324,53 @@ mod tests {
     fn write_package_output_vulnerable() {
         let (coordinates, package_count) = setup_test_coordinates();
         let mut package_output = Vec::new();
-        write_package_output(&mut package_output, &coordinates, package_count, true).unwrap();
+        write_package_output(
+            &mut package_output,
+            &coordinates,
+            package_count,
+            true,
+            false,
+            Some(30),
+        )
+        .unwrap();
         assert_eq!(
            convert_output(&package_output),
-           "\nVulnerable Dependencies\n\n[1/3] coord one purl-1vuln\n1 known vulnerability found\n\ncoord1-vuln1 title\n\n0\n\n\n\n[2/3] coord two purl-3vulns\n3 known vulnerabilities found\n\ncoord2-vuln1 title\n\n0\n\n\n\ncoord2-vuln3 title\n\n0\n\n\n\n"
+           "\nVulnerable Dependencies\n\n[1/3] coord one purl-1vuln\n1 known vulnerability found\n\
+           ╭────────────────────────────╮\
+           │ coord1-vuln1 title         │\
+           ├─────────────┬──────────────┤\
+           │ Description ┆              │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │  CVSS Score ┆ 0            │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │ CVSS Vector ┆              │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │   Reference ┆              │\
+           ╰─────────────┴──────────────╯\
+           \n\n[2/3] coord two purl-3vulns\n3 known vulnerabilities found\n\
+           ╭────────────────────────────╮\
+           │ coord2-vuln1 title         │\
+           ├─────────────┬──────────────┤\
+           │ Description ┆              │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │  CVSS Score ┆ 0            │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │ CVSS Vector ┆              │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │   Reference ┆              │\
+           ╰─────────────┴──────────────╯\n\n\
+           ╭────────────────────────────╮\
+           │ coord2-vuln3 title         │\
+           ├─────────────┬──────────────┤\
+           │ Description ┆              │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │  CVSS Score ┆ 0            │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │ CVSS Vector ┆              │\
+           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+           │   Reference ┆              │\
+           ╰─────────────┴──────────────╯\
+           \n\n"
        );
     }
 

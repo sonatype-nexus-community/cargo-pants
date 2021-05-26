@@ -70,10 +70,18 @@ $ cargo pants --pants_style JNCO
 
 We are very serious about pants.
 
-There is also the option to show all non-vulnerable dependencies for a complete Bill of Materials.
+There are also two command line flags that affect the output further:
+
 ```
 $ cargo pants --loud --lockfile /path/to/Cargo.lock
 ```
+This shows all non-vulnerable dependencies for a complete Bill of Materials.
+
+```
+$ cargo pants --no-color --lockfile /path/to/Cargo.lock
+```
+This disables any coloring of the output.
+
 
 If vulnerabilities are found, `cargo-pants` exits with status code 3, and prints the Bill Of Materials/Found Vulnerabilities. If there are no issues, it will exit with status code 0.
 
