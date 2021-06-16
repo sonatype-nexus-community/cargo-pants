@@ -28,6 +28,7 @@ pub mod error;
 pub mod lockfile;
 pub mod package;
 pub mod vulnerability;
+pub mod cyclonedx;
 
 pub use crate::{client::*, coordinate::*, error::*, lockfile::*, package::*, vulnerability::*};
 
