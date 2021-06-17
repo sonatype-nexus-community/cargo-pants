@@ -14,6 +14,9 @@
 #[macro_use]
 extern crate clap;
 
+use cargo_pants::IQClient;
+use cargo_pants::Error;
+use cargo_pants::CycloneDXGenerator;
 use cargo_pants::{
     client::OSSIndexClient, coordinate::Coordinate, lockfile::Lockfile, package::Package,
 };
@@ -25,65 +28,68 @@ const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
 
 fn main() {
   env_logger::init();
+  let lockfile_arg = Arg::with_name("lockfile")
+    .short("l")
+    .long("lockfile")
+    .takes_value(true)
+    .help("The path to your Cargo.lock file")
+    .default_value(CARGO_DEFAULT_LOCKFILE);
+
   let matches = App::new("Cargo Pants")
     .version(crate_version!())
     .bin_name("cargo")
     .author("Glenn Mohre <glennmohre@gmail.com>")
     .about("A library for auditing your cargo dependencies for vulnerabilities and checking your pants")
     .subcommand(SubCommand::with_name("pants")
-        .arg(Arg::with_name("lockfile")
-            .short("l")
-            .long("lockfile")
-            .takes_value(true)
-            .help("The path to your Cargo.lock file")
-            .default_value(CARGO_DEFAULT_LOCKFILE))
-        .arg(Arg::with_name("pants_style")
-            .short("s")
-            .long("pants_style")
-            .takes_value(true)
-            .help("Your pants style"))
-        .arg(Arg::with_name("loud")
-            .short("v")
-            .long("loud")
-            .takes_value(false)
-            .help("Also show non-vulnerable dependencies"))
-        .arg(Arg::with_name("no-color")
-            .short("m")
-            .long("no-color")
-            .takes_value(false)
-            .help("Disable color output"))
+      .arg(Arg::with_name("pants_style")
+        .short("s")
+        .long("pants_style")
+        .takes_value(true)
+        .help("Your pants style"))
+      .arg(Arg::with_name("loud")
+        .short("v")
+        .long("loud")
+        .takes_value(false)
+        .help("Also show non-vulnerable dependencies"))
+      .arg(Arg::with_name("no-color")
+        .short("m")
+        .long("no-color")
+        .takes_value(false)
+        .help("Disable color output"))
     )
     .subcommand(SubCommand::with_name("iq")
-        .arg(Arg::with_name("iq-server-url")
-            .short("x")
-            .long("iq-server-url")
-            .takes_value(true)
-            .help("Specify Nexus IQ server url for request")
-            .default_value("http://localhost:8070"))
-        .arg(Arg::with_name("iq-application")
-            .short("a")
-            .long("iq-application")
-            .takes_value(true)
-            .help("Specify Nexus IQ public application ID for request"))
-        .arg(Arg::with_name("iq-username")
-            .short("l")
-            .long("iq-username")
-            .takes_value(true)
-            .default_value("admin")
-            .help("Specify Nexus IQ username for request"))
-        .arg(Arg::with_name("iq-token")
-            .short("k")
-            .long("iq-token")
-            .takes_value(true)
-            .default_value("admin123")
-            .help("Specify Nexus IQ token for request"))
-        .arg(Arg::with_name("iq-stage")
-            .short("s")
-            .long("iq-stage")
-            .takes_value(true)
-            .default_value("develop")
-            .help("Specify Nexus IQ stage for request"))
+      .arg(Arg::with_name("iq-server-url")
+        .short("x")
+        .long("iq-server-url")
+        .takes_value(true)
+        .help("Specify Nexus IQ server url for request")
+        .default_value("http://localhost:8070"))
+      .arg(Arg::with_name("iq-application")
+        .short("a")
+        .long("iq-application")
+        .required(true)
+        .takes_value(true)
+        .help("Specify Nexus IQ public application ID for request"))
+      .arg(Arg::with_name("iq-username")
+        .short("l")
+        .long("iq-username")
+        .takes_value(true)
+        .default_value("admin")
+        .help("Specify Nexus IQ username for request"))
+      .arg(Arg::with_name("iq-token")
+        .short("k")
+        .long("iq-token")
+        .takes_value(true)
+        .default_value("admin123")
+        .help("Specify Nexus IQ token for request"))
+      .arg(Arg::with_name("iq-stage")
+        .short("s")
+        .long("iq-stage")
+        .takes_value(true)
+        .default_value("develop")
+        .help("Specify Nexus IQ stage for request"))
     )
+    .arg(lockfile_arg)
     .get_matches();
 
   match matches.subcommand() {
@@ -93,14 +99,40 @@ fn main() {
         check_pants(pants_style);
       }
 
-      let lockfile = sub_m.value_of("lockfile").unwrap();
+      let lockfile_path = matches.value_of("lockfile").unwrap();
       let verbose_output = sub_m.is_present("loud");
       let enable_color: bool = !sub_m.is_present("no-color");
 
-      audit(lockfile.to_string(), verbose_output, enable_color);
+      audit(lockfile_path.to_string(), verbose_output, enable_color);
     },
     ("iq", Some(sub_m)) => {
+      let lockfile_path = matches.value_of("lockfile").unwrap();
+      match get_packages(lockfile_path.to_string()) {
+        Ok(packages) => {
+          let purls: Vec<String> = packages.iter().map(|pkg| pkg.as_purl()).collect();
+          let sbom_generator = CycloneDXGenerator{};
+          let sbom = sbom_generator.generate_sbom_from_purls(purls);
 
+          let server = String::from(sub_m.value_of("iq-server-url").unwrap());
+          let user = String::from(sub_m.value_of("iq-username").unwrap());
+          let token = String::from(sub_m.value_of("iq-token").unwrap());
+          let stage = String::from(sub_m.value_of("iq-stage").unwrap());
+          let application = String::from(sub_m.value_of("iq-application").unwrap());
+
+          let iq = IQClient::new(server.clone(), user, token, stage, application);
+          match iq.audit_with_iq_server(sbom) {
+            Ok(res) => println!("TADA: {}/{}", server, res.report_html_url),
+            Err(e) => {
+              println!("{}", e);
+              process::exit(3);
+            }
+          }
+        },
+        Err(e) => {
+          println!("{}", e);
+          process::exit(1);
+        }
+      };
     }
     _ => print_no_command_found()
   }
@@ -122,13 +154,26 @@ pub fn get_api_key() -> String {
   return api_key;
 }
 
-fn audit(lockfile_path: String, verbose_output: bool, enable_color: bool) -> ! {
-  let lockfile: Lockfile = Lockfile::load(lockfile_path).unwrap_or_else(|e| {
-      println!("{}", e);
-      process::exit(3);
-  });
+fn get_packages(lockfile_path: String) -> Result<Vec<Package>, Error> {
+  match Lockfile::load(lockfile_path) {
+    Ok(f) => {
+      let packages: Vec<Package> = f.packages.clone();
 
-  let packages: Vec<Package> = lockfile.packages.clone();
+      return Ok(packages);
+    },
+    Err(e) => return Err(e)
+  };
+}
+
+fn audit(lockfile_path: String, verbose_output: bool, enable_color: bool) -> ! {
+  let packages = match get_packages(lockfile_path) {
+    Ok(packages) => packages,
+    Err(e) => {
+      println!("{}", e);
+      process::exit(1);
+    }
+  };
+
   let api_key: String = get_api_key();
   let client = OSSIndexClient::new(api_key);
   let mut coordinates: Vec<Coordinate> = Vec::new();

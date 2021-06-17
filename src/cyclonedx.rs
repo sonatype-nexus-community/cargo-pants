@@ -8,23 +8,18 @@ use quick_xml::events::BytesText;
 use quick_xml::events::BytesStart;
 use quick_xml::Writer;
 use std::io::Cursor;
-use std::str;
 use std::str::FromStr;
 use packageurl::PackageUrl;
 
-trait CycloneDX {
-  fn generate_sbom_from_purls(&self, purls: &[&str]) -> String;
-}
+pub struct CycloneDXGenerator ();
 
-struct CycloneDXGenerator ();
-
-impl CycloneDX for CycloneDXGenerator {
-  fn generate_sbom_from_purls(&self, purls: &[&str]) -> String {
+impl CycloneDXGenerator {
+  pub fn generate_sbom_from_purls(&self, purls: Vec<String>) -> String {
     return generate_1_3_sbom_from_purls(purls);
   }
 }
 
-fn generate_1_3_sbom_from_purls(purls: &[&str]) -> String {
+fn generate_1_3_sbom_from_purls(purls: Vec<String>) -> String {
   let mut writer = Writer::new(Cursor::new(Vec::new()));
 
   let mut bom = BytesStart::borrowed_name(b"bom");
@@ -35,10 +30,10 @@ fn generate_1_3_sbom_from_purls(purls: &[&str]) -> String {
   assert!(writer.write_event(Event::Start(bom)).is_ok());
   assert!(writer.write_event(Event::Start(BytesStart::borrowed_name(b"components"))).is_ok());
   for p in purls {
-    let purl = PackageUrl::from_str(p).unwrap();
+    let purl = PackageUrl::from_str(&p).unwrap();
     let mut component = BytesStart::borrowed_name(b"component");
     component.push_attribute(("type", "library"));
-    component.push_attribute(("bom-ref", *p));
+    component.push_attribute(("bom-ref", &p[..]));
     assert!(writer.write_event(Event::Start(component)).is_ok());
     
     // Name tag
@@ -56,7 +51,7 @@ fn generate_1_3_sbom_from_purls(purls: &[&str]) -> String {
 
     // Purl tag
     assert!(writer.write_event(Event::Start(BytesStart::borrowed_name(b"purl"))).is_ok());
-    let version_value = BytesText::from_plain_str(p);
+    let version_value = BytesText::from_plain_str(&p[..]);
     assert!(writer.write_event(Event::Text(version_value)).is_ok());
     assert!(writer.write_event(Event::End(BytesEnd::borrowed(b"purl"))).is_ok());
 
@@ -80,9 +75,13 @@ mod tests {
   fn can_generate_sbom_from_purls_test() {
     let cyclonedx = CycloneDXGenerator{};
 
-    let purls: [&str; 3] = ["pkg:cargo/test@1.0.0", "pkg:cargo/test@1.0.1", "pkg:cargo/test@1.0.2"];
+    let mut purls: Vec<String> = Vec::new();
 
-    let sbom = cyclonedx.generate_sbom_from_purls(&purls);
+    purls.push("pkg:cargo/test@1.0.0".to_string());
+    purls.push("pkg:cargo/test@1.0.1".to_string());
+    purls.push("pkg:cargo/test@1.0.2".to_string());
+
+    let sbom = cyclonedx.generate_sbom_from_purls(purls);
 
     let expected = "<bom xmlns=\"http://cyclonedx.org/schema/bom/1.3\" version=\"1\"><components><component type=\"library\" bom-ref=\"pkg:cargo/test@1.0.0\"><name>test</name><version>1.0.0</version><purl>pkg:cargo/test@1.0.0</purl></component><component type=\"library\" bom-ref=\"pkg:cargo/test@1.0.1\"><name>test</name><version>1.0.1</version><purl>pkg:cargo/test@1.0.1</purl></component><component type=\"library\" bom-ref=\"pkg:cargo/test@1.0.2\"><name>test</name><version>1.0.2</version><purl>pkg:cargo/test@1.0.2</purl></component></components></bom>";
 

@@ -29,8 +29,9 @@ pub mod lockfile;
 pub mod package;
 pub mod vulnerability;
 pub mod cyclonedx;
+pub mod iq;
 
-pub use crate::{client::*, coordinate::*, error::*, lockfile::*, package::*, vulnerability::*};
+pub use crate::{client::*, coordinate::*, error::*, lockfile::*, package::*, vulnerability::*, cyclonedx::CycloneDXGenerator, iq::IQClient};
 
 // Global Singletons are bad kids. Don't use them (unless you need the terminal width everywhere).
 const DEFAULT_TERM_SIZE: termsize::Size = termsize::Size { cols: 80, rows: 40 };
