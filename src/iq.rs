@@ -1,3 +1,16 @@
+// Copyright 2021 Sonatype.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 use reqwest::Body;
 use std::error::Error;
@@ -11,37 +24,149 @@ use std::fmt;
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ApplicationResponse {
-    pub applications: Vec<Application>,
+  pub applications: Vec<Application>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Application {
-    pub id: String,
-    pub public_id: String,
-    pub name: String
+  pub id: String,
+  pub public_id: String,
+  pub name: String
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ApplicationTag {
-    pub id: String,
-    pub tag_id: String,
-    pub application_id: String,
+  pub id: String,
+  pub tag_id: String,
+  pub application_id: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SbomSubmitResult {
-    pub status_url: String,
+  pub status_url: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StatusURLResult {
-    pub policy_action: String,
-    pub report_html_url: String,
-    pub is_error: bool,
+  pub policy_action: String,
+  pub report_html_url: String,
+  pub report_pdf_url: String,
+  pub report_data_url: String,
+  pub embeddable_report_html_url: String,
+  pub is_error: bool,
+  pub components_affected: ComponentsAffected,
+  pub open_policy_violations: OpenPolicyViolations,
+  pub grandfathered_policy_violations: i64,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ComponentsAffected {
+  pub critical: i64,
+  pub severe: i64,
+  pub moderate: i64,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpenPolicyViolations {
+  pub critical: i64,
+  pub severe: i64,
+  pub moderate: i64,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RawReportResults {
+  pub components: Vec<Component>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Component {
+  pub hash: String,
+  pub component_identifier: ComponentIdentifier,
+  pub package_url: String,
+  pub proprietary: bool,
+  pub match_state: String,
+  pub pathnames: Vec<String>,
+  pub license_data: LicenseData,
+  pub security_data: SecurityData,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ComponentIdentifier {
+  pub format: String,
+  pub coordinates: Coordinates,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Coordinates {
+  pub artifact_id: Option<String>,
+  pub name: Option<String>,
+  pub group_id: Option<String>,
+  pub version: String,
+  pub extension: Option<String>,
+  pub classifier: Option<String>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LicenseData {
+  pub declared_licenses: Vec<DeclaredLicense>,
+  pub observed_licenses: Vec<ObservedLicense>,
+  pub effective_licenses: Vec<EffectiveLicense>,
+  pub overridden_licenses: Vec<::serde_json::Value>,
+  pub status: String,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeclaredLicense {
+  pub license_id: String,
+  pub license_name: String,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ObservedLicense {
+  pub license_id: String,
+  pub license_name: String,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EffectiveLicense {
+  pub license_id: String,
+  pub license_name: String,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SecurityData {
+  pub security_issues: Vec<SecurityIssue>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SecurityIssue {
+  pub source: String,
+  pub reference: String,
+  pub severity: f64,
+  pub status: String,
+  pub url: String,
+  pub threat_category: String,
+}
+
+pub struct ReportResults {
+  pub url_results: StatusURLResult,
+  pub data_results: RawReportResults
 }
 
 #[derive(Debug)]
@@ -55,6 +180,17 @@ impl fmt::Display for PollingError {
 
 impl Error for PollingError {}
 
+#[derive(Debug)]
+struct GeneralError(String);
+
+impl fmt::Display for GeneralError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "A general error occurred talking to Nexus IQ Server: {}", self.0)
+    }
+}
+
+impl Error for GeneralError {}
+
 pub struct IQClient {
   server: String,
   user: String,
@@ -64,12 +200,13 @@ pub struct IQClient {
   attempts: u32
 }
 
+
 impl IQClient {
   pub fn new(server: String, user: String, token: String, stage: String, application: String, attempts: u32) -> IQClient {
     IQClient {server, user, token, stage, application, attempts}
   }
 
-  pub fn audit_with_iq_server(&self, sbom: String) -> Result<StatusURLResult, Box<dyn Error>> {
+  pub fn audit_with_iq_server(&self, sbom: String) -> Result<ReportResults, Box<dyn Error>> {
 
     let app = &self.application;
     let internal_application_id = match self.get_internal_application_id(app.to_string()) {
@@ -97,7 +234,18 @@ impl IQClient {
 
       let result = self.poll_status_url(status_url_string.to_string());
       if result.is_ok() {
-        return Ok(result.unwrap())
+        let res = result.unwrap();
+        let data = self.get_raw_report_results(res.report_data_url.clone());
+
+        if data.is_ok() {
+          let combined_results: ReportResults = ReportResults{
+            data_results: data.unwrap(), 
+            url_results: res
+          };
+          return Ok(combined_results);
+        } else {
+          return Err(Box::new(GeneralError(data.unwrap_err().to_string())));
+        }
       }
       if result.is_err() {
         let res_err = result.unwrap_err();
@@ -156,6 +304,21 @@ impl IQClient {
     let token = &self.token;
 
     let url_string = format!("{}/{}", &self.server, &status_url);
+    let url = Url::parse(&url_string).unwrap();
+    let mut res = client.get(url)
+      .basic_auth(user.to_string(), Some(token.to_string()))
+      .send()?;
+
+    return res.json();
+  }
+
+  fn get_raw_report_results(&self, report_url: String) -> Result<RawReportResults, reqwest::Error> {
+    let client = Client::new();
+
+    let user = &self.user;
+    let token = &self.token;
+
+    let url_string = format!("{}/{}", &self.server, &report_url);
     let url = Url::parse(&url_string).unwrap();
     let mut res = client.get(url)
       .basic_auth(user.to_string(), Some(token.to_string()))

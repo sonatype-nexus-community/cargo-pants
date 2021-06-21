@@ -157,30 +157,42 @@ fn main() {
               iq_bar.finish_with_message(format!("{}{}", WHITE_HEAVY_CHECK_MARK, "Nexus IQ Results obtained"));
               println!("");
 
-              match res.policy_action.as_ref() {
+              match res.url_results.policy_action.as_ref() {
                 "Failure" => {
                   println!(
                     "{}{}/{}", 
                     style("DANGER! Policy violations exist in your scan\nReport URL: ").red().bold(), 
                     server, 
-                    res.report_html_url
+                    res.url_results.report_html_url
                   );
+                  println!("");
+                  println!("{}{}", style("Critical policy violations ").red().bold(), res.url_results.open_policy_violations.critical);
+                  println!("{}{}", style("Severe policy violations ").yellow().bold(), res.url_results.open_policy_violations.severe);
+                  println!("{}{}", style("Moderate policy violations ").cyan().bold(), res.url_results.open_policy_violations.moderate);
                 }
                 "Warning" => {
                   println!(
                     "{}{}/{}", 
                     style("WARNING! Warnings have been found in your scan\nReport URL: ").yellow().bold(), 
                     server, 
-                    res.report_html_url
+                    res.url_results.report_html_url
                   );
+                  println!("");
+                  println!("{}{}", style("Critical policy violations ").red().bold(), res.url_results.open_policy_violations.critical);
+                  println!("{}{}", style("Severe policy violations ").yellow().bold(), res.url_results.open_policy_violations.severe);
+                  println!("{}{}", style("Moderate policy violations ").cyan().bold(), res.url_results.open_policy_violations.moderate);
                 }
                 "None" => {
                   println!(
                     "{}{}/{}", 
                     style("Smooth sailing! No policy issues found in your scan\nReport URL: ").green().bold(), 
-                    server, 
-                    res.report_html_url
+                    server,
+                    res.url_results.report_html_url
                   );
+                  println!("");
+                  println!("{}{}", style("Critical policy violations ").red().bold(), res.url_results.open_policy_violations.critical);
+                  println!("{}{}", style("Severe policy violations ").yellow().bold(), res.url_results.open_policy_violations.severe);
+                  println!("{}{}", style("Moderate policy violations ").cyan().bold(), res.url_results.open_policy_violations.moderate);
                 },
                 _ => {
                   println!(
