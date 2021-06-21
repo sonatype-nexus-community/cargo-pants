@@ -60,12 +60,13 @@ pub struct IQClient {
   user: String,
   token: String,
   stage: String,
-  application: String
+  application: String,
+  attempts: u32
 }
 
 impl IQClient {
-  pub fn new(server: String, user: String, token: String, stage: String, application: String) -> IQClient {
-    IQClient {server, user, token, stage, application}
+  pub fn new(server: String, user: String, token: String, stage: String, application: String, attempts: u32) -> IQClient {
+    IQClient {server, user, token, stage, application, attempts}
   }
 
   pub fn audit_with_iq_server(&self, sbom: String) -> Result<StatusURLResult, Box<dyn Error>> {
@@ -91,10 +92,8 @@ impl IQClient {
 
     let status_url_string = &status_url.status_url;
 
-    println!("{}", status_url_string.to_string());
-
     loop {
-      if i > 60 { break };
+      if i > self.attempts { break };
 
       let result = self.poll_status_url(status_url_string.to_string());
       if result.is_ok() {
@@ -140,7 +139,6 @@ impl IQClient {
     let token = &self.token;
 
     let url = Url::parse(&format!("{}{}{}{}{}", &self.server, "/api/v2/scan/applications/", internal_application_id, "/sources/cargo-pants?stageId=", &self.stage)).unwrap();
-    println!("{}", url);
 
     let body = Body::from(sbom);
     let mut res = client.post(url)

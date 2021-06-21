@@ -23,8 +23,15 @@ use cargo_pants::{
 use clap::{App, Arg, SubCommand};
 use std::io::{stdout, Write};
 use std::{env, io, process};
+use indicatif::{ProgressBar, ProgressStyle};
+use console::{Emoji, style};
 
 const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
+
+static LOOKING_GLASS: Emoji<'_, '_> = Emoji("🔍 ", "");
+static SPARKIES: Emoji<'_, '_> = Emoji("✨ ", "");
+static WHITE_HEAVY_CHECK_MARK: Emoji<'_, '_> = Emoji("✅ ", "");
+static CROSS_MARK: Emoji<'_, '_> = Emoji("❌ ", "");
 
 fn main() {
   env_logger::init();
@@ -88,6 +95,12 @@ fn main() {
         .takes_value(true)
         .default_value("develop")
         .help("Specify Nexus IQ stage for request"))
+      .arg(Arg::with_name("iq-attempts")
+        .short("t")
+        .long("iq-attempts")
+        .takes_value(true)
+        .default_value("60")
+        .help("Specify Nexus IQ attempts in seconds"))
     )
     .arg(lockfile_arg)
     .get_matches();
@@ -106,29 +119,68 @@ fn main() {
       audit(lockfile_path.to_string(), verbose_output, enable_color);
     },
     ("iq", Some(sub_m)) => {
+      banner();
+      let spinner_style = ProgressStyle::default_spinner()
+        .template("{prefix:.bold.dim} {wide_msg}");
+      let package_bar = ProgressBar::new_spinner();
+      package_bar.set_style(spinner_style.clone());
+      package_bar.set_message(format!("{}{}", LOOKING_GLASS, "Getting package list"));
+
       let lockfile_path = matches.value_of("lockfile").unwrap();
       match get_packages(lockfile_path.to_string()) {
         Ok(packages) => {
+          package_bar.finish_with_message(format!("{}{}", WHITE_HEAVY_CHECK_MARK, "Obtained package list"));
+
+          let sbom_bar = ProgressBar::new_spinner();
+          sbom_bar.set_style(spinner_style.clone());
+
+          sbom_bar.set_message(format!("{}{}", SPARKIES, "Generating SBOM representation of project"));
           let purls: Vec<String> = packages.iter().map(|pkg| pkg.as_purl()).collect();
           let sbom_generator = CycloneDXGenerator{};
           let sbom = sbom_generator.generate_sbom_from_purls(purls);
+          sbom_bar.finish_with_message(format!("{}{}", WHITE_HEAVY_CHECK_MARK, "SBOM generated"));
 
           let server = String::from(sub_m.value_of("iq-server-url").unwrap());
           let user = String::from(sub_m.value_of("iq-username").unwrap());
           let token = String::from(sub_m.value_of("iq-token").unwrap());
           let stage = String::from(sub_m.value_of("iq-stage").unwrap());
           let application = String::from(sub_m.value_of("iq-application").unwrap());
+          let attempts: u32 = String::from(sub_m.value_of("iq-attempts").unwrap()).parse().unwrap();
 
-          let iq = IQClient::new(server.clone(), user, token, stage, application);
+          let iq_bar = ProgressBar::new_spinner();
+          iq_bar.set_style(spinner_style.clone());
+          iq_bar.set_message(format!("{}{}", SPARKIES, "Sending SBOM to Nexus IQ Server for evaluation"));
+
+          let iq = IQClient::new(server.clone(), user, token, stage, application, attempts);
           match iq.audit_with_iq_server(sbom) {
-            Ok(res) => println!("TADA: {}/{}", server, res.report_html_url),
+            Ok(res) => {
+              iq_bar.finish_with_message(format!("{}{}", WHITE_HEAVY_CHECK_MARK, "Nexus IQ Results obtained"));
+              println!("");
+              match res.policy_action.as_ref() {
+                "Failure" => {
+                  println!("{}{}/{}", style("DANGER! Policy violations exist in your scan\nReport URL: ").red().bold(), server, res.report_html_url);
+                }
+                "Warning" => {
+                  println!("{}{}/{}", style("WARNING! Warnings have been found in your scan\nReport URL: ").yellow().bold(), server, res.report_html_url);
+                }
+                "None" => {
+                  println!("{}{}/{}", style("Smooth sailing! No policy issues found in your scan\nReport URL: ").green().bold(), server, res.report_html_url);
+                },
+                _ => {
+                  println!("{}", "The response from Nexus IQ Server did not include a policy action, which is odd");
+                  process::exit(1);
+                }
+              }
+            },
             Err(e) => {
+              iq_bar.finish_with_message(format!("{}{}", CROSS_MARK, "Error generating Nexus IQ Server results"));
               println!("{}", e);
-              process::exit(3);
+              process::exit(1);
             }
           }
         },
         Err(e) => {
+          package_bar.finish_with_message(format!("{}{}", CROSS_MARK, "Unable to obtain package list"));
           println!("{}", e);
           process::exit(1);
         }
