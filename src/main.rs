@@ -156,24 +156,44 @@ fn main() {
             Ok(res) => {
               iq_bar.finish_with_message(format!("{}{}", WHITE_HEAVY_CHECK_MARK, "Nexus IQ Results obtained"));
               println!("");
+
               match res.policy_action.as_ref() {
                 "Failure" => {
-                  println!("{}{}/{}", style("DANGER! Policy violations exist in your scan\nReport URL: ").red().bold(), server, res.report_html_url);
+                  println!(
+                    "{}{}/{}", 
+                    style("DANGER! Policy violations exist in your scan\nReport URL: ").red().bold(), 
+                    server, 
+                    res.report_html_url
+                  );
                 }
                 "Warning" => {
-                  println!("{}{}/{}", style("WARNING! Warnings have been found in your scan\nReport URL: ").yellow().bold(), server, res.report_html_url);
+                  println!(
+                    "{}{}/{}", 
+                    style("WARNING! Warnings have been found in your scan\nReport URL: ").yellow().bold(), 
+                    server, 
+                    res.report_html_url
+                  );
                 }
                 "None" => {
-                  println!("{}{}/{}", style("Smooth sailing! No policy issues found in your scan\nReport URL: ").green().bold(), server, res.report_html_url);
+                  println!(
+                    "{}{}/{}", 
+                    style("Smooth sailing! No policy issues found in your scan\nReport URL: ").green().bold(), 
+                    server, 
+                    res.report_html_url
+                  );
                 },
                 _ => {
-                  println!("{}", "The response from Nexus IQ Server did not include a policy action, which is odd");
+                  println!(
+                    "{}", "The response from Nexus IQ Server did not include a policy action, which is odd"
+                  );
                   process::exit(1);
                 }
               }
             },
             Err(e) => {
-              iq_bar.finish_with_message(format!("{}{}", CROSS_MARK, "Error generating Nexus IQ Server results"));
+              iq_bar.finish_with_message(
+                format!("{}{}", CROSS_MARK, "Error generating Nexus IQ Server results")
+              );
               println!("{}", e);
               process::exit(1);
             }
