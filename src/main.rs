@@ -14,15 +14,16 @@
 #[macro_use]
 extern crate clap;
 
+use clap::ArgMatches;
+use log4rs::encode::json::JsonEncoder;
 use dirs::home_dir;
 use log4rs::config::Root;
 use log4rs::config::Logger;
 use log4rs::config::Appender;
 use log4rs::Config;
-use log4rs::encode::pattern::PatternEncoder;
 use log4rs::append::file::FileAppender;
 use log::LevelFilter;
-use log::{info, debug, trace, error};
+use log::{debug, error};
 use cargo_pants::iq::OpenPolicyViolations;
 use cli_table::TableStruct;
 use console::StyledObject;
@@ -56,11 +57,16 @@ macro_rules! ternary {
 
 fn main() {
   let lockfile_arg = Arg::with_name("lockfile")
-    .short("l")
     .long("lockfile")
     .takes_value(true)
     .help("The path to your Cargo.lock file")
     .default_value(CARGO_DEFAULT_LOCKFILE);
+
+  let logger_arg = Arg::with_name("verbose")
+    .short("v")
+    .takes_value(false)
+    .multiple(true)
+    .help("Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v");
 
   let matches = App::new("Cargo Pants")
     .version(crate_version!())
@@ -74,7 +80,7 @@ fn main() {
         .takes_value(true)
         .help("Your pants style"))
       .arg(Arg::with_name("loud")
-        .short("v")
+        .short("d")
         .long("loud")
         .takes_value(false)
         .help("Also show non-vulnerable dependencies"))
@@ -83,6 +89,8 @@ fn main() {
         .long("no-color")
         .takes_value(false)
         .help("Disable color output"))
+      .arg(logger_arg.clone())
+      .arg(lockfile_arg.clone())
     )
     .subcommand(SubCommand::with_name("iq")
       .arg(Arg::with_name("iq-server-url")
@@ -121,34 +129,42 @@ fn main() {
         .takes_value(true)
         .default_value("60")
         .help("Specify Nexus IQ attempts in seconds"))
+      .arg(logger_arg.clone())
+      .arg(lockfile_arg.clone())
     )
-    .arg(lockfile_arg)
     .get_matches();
 
   match matches.subcommand() {
     ("pants", Some(sub_m)) => {
-      construct_logger(false);
+      let log_level = get_log_level_filter(sub_m);
+
+      construct_logger(false, log_level);
+
       if sub_m.is_present("pants_style") {
         let pants_style = String::from(sub_m.value_of("pants_style").unwrap());
         check_pants(pants_style);
       }
 
-      let lockfile_path = matches.value_of("lockfile").unwrap();
+      let lockfile_path = sub_m.value_of("lockfile").unwrap();
       let verbose_output = sub_m.is_present("loud");
       let enable_color: bool = !sub_m.is_present("no-color");
 
       audit(lockfile_path.to_string(), verbose_output, enable_color);
     },
     ("iq", Some(sub_m)) => {
-      construct_logger(true);
+      let log_level = get_log_level_filter(sub_m);
+
       banner();
+
+      construct_logger(true, log_level);
+
       let spinner_style = ProgressStyle::default_spinner()
         .template("{prefix:.bold.dim} {wide_msg}");
       let package_bar = ProgressBar::new_spinner();
       package_bar.set_style(spinner_style.clone());
       package_bar.set_message(format!("{}{}", LOOKING_GLASS, "Getting package list"));
 
-      let lockfile_path = matches.value_of("lockfile").unwrap();
+      let lockfile_path = sub_m.value_of("lockfile").unwrap();
       match get_packages(lockfile_path.to_string()) {
         Ok(packages) => {
           package_bar.finish_with_message(format!("{}{}", CRAB, "Obtained package list"));
@@ -239,7 +255,27 @@ fn main() {
   }
 }
 
-fn construct_logger(iq: bool) {
+fn get_log_level_filter(matches: &ArgMatches) -> LevelFilter {
+  match matches.occurrences_of("verbose") {
+    1 => {
+      return LevelFilter::Warn
+    },
+    2 => {
+      return LevelFilter::Info
+    },
+    3 => {
+      return LevelFilter::Debug
+    },
+    4 => {
+      return LevelFilter::Trace
+    }
+    _ => {
+      return LevelFilter::Error
+    }
+  };
+}
+
+fn construct_logger(iq: bool, log_level_filter: LevelFilter) {
   static FILENAME: &str = "cargo-pants.combined.log";
   static IQ_DIR: &str = ".iqserver";
   static OSS_INDEX_DIR: &str = ".ossindex";
@@ -248,7 +284,7 @@ fn construct_logger(iq: bool) {
   let log_location_base_dir = ternary!(iq, home.join(IQ_DIR), home.join(OSS_INDEX_DIR));
 
   let file = FileAppender::builder()
-    .encoder(Box::new(PatternEncoder::new("{d} - {m}{n}")))
+    .encoder(Box::new(JsonEncoder::new()))
     .build(log_location_base_dir.join(FILENAME))
     .unwrap();
 
@@ -257,11 +293,14 @@ fn construct_logger(iq: bool) {
     .logger(Logger::builder()
       .appender("file")
       .additive(true)
-      .build("app::file", LevelFilter::Info))
-    .build(Root::builder().appender("file").build(LevelFilter::Debug))
+      .build("app::file", log_level_filter))
+    .build(Root::builder().appender("file").build(log_level_filter))
     .unwrap();
 
   let _handle = log4rs::init_config(config).unwrap();
+
+  println!("Log Level set to: {}", log_level_filter);
+  println!("Logging to: {:?}", log_location_base_dir.join(FILENAME));
 }
 
 fn print_iq_summary(emoji: Emoji, summary_line: StyledObject<&str>, table: TableStruct, server: String, html_url: String) {
