@@ -269,12 +269,9 @@ impl IQClient {
   fn get_internal_application_id(&self, application: String) -> Result<ApplicationResponse, reqwest::Error> {
     let client = Client::new();
 
-    let user = &self.user;
-    let token = &self.token;
-
     let url = Url::parse(&format!("{}{}{}", &self.server, "/api/v2/applications?publicId=", &application)).unwrap();
     let mut res = client.get(url)
-      .basic_auth(user.to_string(), Some(token.to_string()))
+      .basic_auth(&self.user.to_string(), Some(&self.token.to_string()))
       .send()?;
 
     return res.json();
@@ -283,14 +280,11 @@ impl IQClient {
   fn submit_to_third_party_api(&self, internal_application_id: String, sbom: String) -> Result<SbomSubmitResult, reqwest::Error> {
     let client = Client::new();
 
-    let user = &self.user;
-    let token = &self.token;
-
     let url = Url::parse(&format!("{}{}{}{}{}", &self.server, "/api/v2/scan/applications/", internal_application_id, "/sources/cargo-pants?stageId=", &self.stage)).unwrap();
 
     let body = Body::from(sbom);
     let mut res = client.post(url)
-      .basic_auth(user.to_string(), Some(token.to_string()))
+      .basic_auth(&self.user.to_string(), Some(&self.token.to_string()))
       .body(body)
       .send()?;
 
@@ -300,13 +294,10 @@ impl IQClient {
   fn poll_status_url(&self, status_url: String) -> Result<StatusURLResult, reqwest::Error> {
     let client = Client::new();
 
-    let user = &self.user;
-    let token = &self.token;
-
     let url_string = format!("{}/{}", &self.server, &status_url);
     let url = Url::parse(&url_string).unwrap();
     let mut res = client.get(url)
-      .basic_auth(user.to_string(), Some(token.to_string()))
+      .basic_auth(&self.user.to_string(), Some(&self.token.to_string()))
       .send()?;
 
     return res.json();
@@ -315,13 +306,10 @@ impl IQClient {
   fn get_raw_report_results(&self, report_url: String) -> Result<RawReportResults, reqwest::Error> {
     let client = Client::new();
 
-    let user = &self.user;
-    let token = &self.token;
-
     let url_string = format!("{}/{}", &self.server, &report_url);
     let url = Url::parse(&url_string).unwrap();
     let mut res = client.get(url)
-      .basic_auth(user.to_string(), Some(token.to_string()))
+      .basic_auth(&self.user.to_string(), Some(&self.token.to_string()))
       .send()?;
 
     return res.json();
