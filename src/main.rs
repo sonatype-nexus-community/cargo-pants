@@ -23,7 +23,7 @@ use log4rs::config::Appender;
 use log4rs::Config;
 use log4rs::append::file::FileAppender;
 use log::LevelFilter;
-use log::{debug, error};
+use log::{debug, info, error};
 use cargo_pants::iq::OpenPolicyViolations;
 use cli_table::TableStruct;
 use console::StyledObject;
@@ -140,16 +140,7 @@ fn main() {
 
       construct_logger(false, log_level);
 
-      if sub_m.is_present("pants_style") {
-        let pants_style = String::from(sub_m.value_of("pants_style").unwrap());
-        check_pants(pants_style);
-      }
-
-      let lockfile_path = sub_m.value_of("lockfile").unwrap();
-      let verbose_output = sub_m.is_present("loud");
-      let enable_color: bool = !sub_m.is_present("no-color");
-
-      audit(lockfile_path.to_string(), verbose_output, enable_color);
+      handle_pants_sub_command(sub_m);
     },
     ("iq", Some(sub_m)) => {
       let log_level = get_log_level_filter(sub_m);
@@ -158,101 +149,118 @@ fn main() {
 
       construct_logger(true, log_level);
 
-      let spinner_style = ProgressStyle::default_spinner()
-        .template("{prefix:.bold.dim} {wide_msg}");
-      let package_bar = ProgressBar::new_spinner();
-      package_bar.set_style(spinner_style.clone());
-      package_bar.set_message(format!("{}{}", LOOKING_GLASS, "Getting package list"));
+      handle_iq_sub_command(sub_m);
+    }
+    _ => print_no_command_found()
+  }
+}
 
-      let lockfile_path = sub_m.value_of("lockfile").unwrap();
-      match get_packages(lockfile_path.to_string()) {
-        Ok(packages) => {
-          package_bar.finish_with_message(format!("{}{}", CRAB, "Obtained package list"));
+fn handle_pants_sub_command(sub_m: &ArgMatches) {
+  if sub_m.is_present("pants_style") {
+    let pants_style = String::from(sub_m.value_of("pants_style").unwrap());
+    check_pants(pants_style);
+  }
 
-          let sbom_bar = ProgressBar::new_spinner();
-          sbom_bar.set_style(spinner_style.clone());
+  let lockfile_path = sub_m.value_of("lockfile").unwrap();
+  let verbose_output = sub_m.is_present("loud");
+  let enable_color: bool = !sub_m.is_present("no-color");
 
-          sbom_bar.set_message(format!("{}{}", SPARKIES, "Generating SBOM representation of project"));
-          let purls: Vec<String> = packages.iter().map(|pkg| pkg.as_purl()).collect();
-          let sbom_generator = CycloneDXGenerator{};
-          let sbom = sbom_generator.generate_sbom_from_purls(purls);
-          sbom_bar.finish_with_message(format!("{}{}", CRAB, "SBOM generated"));
+  audit(lockfile_path.to_string(), verbose_output, enable_color);
+} 
 
-          let server = String::from(sub_m.value_of("iq-server-url").unwrap());
-          let user = String::from(sub_m.value_of("iq-username").unwrap());
-          let token = String::from(sub_m.value_of("iq-token").unwrap());
-          let stage = String::from(sub_m.value_of("iq-stage").unwrap());
-          let application = String::from(sub_m.value_of("iq-application").unwrap());
-          let attempts: u32 = String::from(sub_m.value_of("iq-attempts").unwrap()).parse().unwrap();
+fn handle_iq_sub_command(sub_m: &ArgMatches) {
+  let spinner_style = ProgressStyle::default_spinner()
+      .template("{prefix:.bold.dim} {wide_msg}");
+  let package_bar = ProgressBar::new_spinner();
+  package_bar.set_style(spinner_style.clone());
+  package_bar.set_message(format!("{}{}", LOOKING_GLASS, "Getting package list"));
 
-          let iq_bar = ProgressBar::new_spinner();
-          iq_bar.set_style(spinner_style.clone());
-          iq_bar.set_message(format!("{}{}", SPARKIES, "Sending SBOM to Nexus IQ Server for evaluation"));
+  let lockfile_path = sub_m.value_of("lockfile").unwrap();
+  match get_packages(lockfile_path.to_string()) {
+    Ok(packages) => {
+      package_bar.finish_with_message(format!("{}{}", CRAB, "Obtained package list"));
 
-          let iq = IQClient::new(server.clone(), user, token, stage, application, attempts);
-          match iq.audit_with_iq_server(sbom) {
-            Ok(res) => {
-              iq_bar.finish_with_message(format!("{}{}", CRAB, "Nexus IQ Results obtained"));
-              println!("");
+      let sbom_bar = ProgressBar::new_spinner();
+      sbom_bar.set_style(spinner_style.clone());
 
-              let table = generate_summary_table(res.url_results.open_policy_violations);
+      sbom_bar.set_message(format!("{}{}", SPARKIES, "Generating SBOM representation of project"));
+      let purls: Vec<String> = packages.iter().map(|pkg| pkg.as_purl()).collect();
+      let sbom_generator = CycloneDXGenerator{};
+      let sbom = sbom_generator.generate_sbom_from_purls(purls);
+      sbom_bar.finish_with_message(format!("{}{}", CRAB, "SBOM generated"));
 
-              match res.url_results.policy_action.as_ref() {
-                "Failure" => {
-                  print_iq_summary(
-                    CRAB,
-                    style("Aw Crabs! Policy violations exist in your scan.").red().bold(), 
-                    table, 
-                    server, 
-                    res.url_results.report_html_url);
+      let server = String::from(sub_m.value_of("iq-server-url").unwrap());
+      let user = String::from(sub_m.value_of("iq-username").unwrap());
+      let token = String::from(sub_m.value_of("iq-token").unwrap());
+      let stage = String::from(sub_m.value_of("iq-stage").unwrap());
+      let application = String::from(sub_m.value_of("iq-application").unwrap());
+      let attempts: u32 = String::from(sub_m.value_of("iq-attempts").unwrap()).parse().unwrap();
 
-                  process::exit(1);
-                }
-                "Warning" => {
-                  print_iq_summary(
-                    CONSTRUCTION,
-                    style("Barnacles! Warnings have been detected in your scan.").yellow().bold(), 
-                    table, 
-                    server, 
-                    res.url_results.report_html_url);
-                }
-                "None" => {
-                  print_iq_summary(
-                    SHIP,
-                    style("Smooth sailing! No policy issues found in your scan.").green().bold(), 
-                    table, 
-                    server, 
-                    res.url_results.report_html_url);
-                },
-                _ => {
-                  println!(
-                    "{}", "The response from Nexus IQ Server did not include a policy action, which is odd"
-                  );
+      let iq_bar = ProgressBar::new_spinner();
+      iq_bar.set_style(spinner_style.clone());
+      iq_bar.set_message(format!("{}{}", SPARKIES, "Sending SBOM to Nexus IQ Server for evaluation"));
 
-                  process::exit(1);
-                }
-              }
+      let iq = IQClient::new(server.clone(), user, token, stage, application, attempts);
+      match iq.audit_with_iq_server(sbom) {
+        Ok(res) => {
+          iq_bar.finish_with_message(format!("{}{}", CRAB, "Nexus IQ Results obtained"));
+          println!("");
+
+          let table = generate_summary_table(res.url_results.open_policy_violations);
+
+          match res.url_results.policy_action.as_ref() {
+            "Failure" => {
+              print_iq_summary(
+                CRAB,
+                style("Aw Crabs! Policy violations exist in your scan.").red().bold(), 
+                table, 
+                server, 
+                res.url_results.report_html_url);
+
+              process::exit(1);
+            }
+            "Warning" => {
+              print_iq_summary(
+                CONSTRUCTION,
+                style("Barnacles! Warnings have been detected in your scan.").yellow().bold(), 
+                table, 
+                server, 
+                res.url_results.report_html_url);
+            }
+            "None" => {
+              print_iq_summary(
+                SHIP,
+                style("Smooth sailing! No policy issues found in your scan.").green().bold(), 
+                table, 
+                server, 
+                res.url_results.report_html_url);
             },
-            Err(e) => {
-              iq_bar.finish_with_message(
-                format!("{}{}", CROSS_MARK, "Error generating Nexus IQ Server results")
+            _ => {
+              println!(
+                "{}", "The response from Nexus IQ Server did not include a policy action, which is odd"
               );
-              println!("{}", e);
 
               process::exit(1);
             }
           }
         },
         Err(e) => {
-          package_bar.finish_with_message(format!("{}{}", CROSS_MARK, "Unable to obtain package list"));
+          iq_bar.finish_with_message(
+            format!("{}{}", CROSS_MARK, "Error generating Nexus IQ Server results")
+          );
           println!("{}", e);
 
           process::exit(1);
         }
-      };
+      }
+    },
+    Err(e) => {
+      package_bar.finish_with_message(format!("{}{}", CROSS_MARK, "Unable to obtain package list"));
+      println!("{}", e);
+
+      process::exit(1);
     }
-    _ => print_no_command_found()
-  }
+  };
 }
 
 fn get_log_level_filter(matches: &ArgMatches) -> LevelFilter {
@@ -276,16 +284,14 @@ fn get_log_level_filter(matches: &ArgMatches) -> LevelFilter {
 }
 
 fn construct_logger(iq: bool, log_level_filter: LevelFilter) {
-  static FILENAME: &str = "cargo-pants.combined.log";
-  static IQ_DIR: &str = ".iqserver";
-  static OSS_INDEX_DIR: &str = ".ossindex";
   let home = home_dir().unwrap();
 
-  let log_location_base_dir = ternary!(iq, home.join(IQ_DIR), home.join(OSS_INDEX_DIR));
+  let log_location_base_dir = ternary!(iq, home.join(".iqserver"), home.join(".ossindex"));
+  let full_log_location = log_location_base_dir.join("cargo-pants.combined.log");
 
   let file = FileAppender::builder()
     .encoder(Box::new(JsonEncoder::new()))
-    .build(log_location_base_dir.join(FILENAME))
+    .build(full_log_location.clone())
     .unwrap();
 
   let config = Config::builder()
@@ -299,8 +305,10 @@ fn construct_logger(iq: bool, log_level_filter: LevelFilter) {
 
   let _handle = log4rs::init_config(config).unwrap();
 
+  println!("");
   println!("Log Level set to: {}", log_level_filter);
-  println!("Logging to: {:?}", log_location_base_dir.join(FILENAME));
+  println!("Logging to: {:?}", full_log_location.clone());
+  println!("");
 }
 
 fn print_iq_summary(emoji: Emoji, summary_line: StyledObject<&str>, table: TableStruct, server: String, html_url: String) {
@@ -337,15 +345,17 @@ fn print_no_command_found() {
   println!("Therefore at least the command line parameter 'pants' must be provided.");
 }
 
-pub fn get_api_key() -> String {
-  let api_key: String = match env::var("OSS_INDEX_API_KEY") {
-      Ok(val) => val,
+fn get_api_key() -> Option<String> {
+  match env::var("OSS_INDEX_API_KEY") {
+      Ok(val) => {
+        return Some(val)
+      },
       Err(e) => {
-          println!("Warning: missing optional 'OSS_INDEX_API_KEY': {}", e);
-          "".to_string()
+        info!("Warning: missing optional 'OSS_INDEX_API_KEY': {}", e);
+
+        return None
       }
   };
-  return api_key;
 }
 
 fn get_packages(lockfile_path: String) -> Result<Vec<Package>, Error> {
@@ -374,7 +384,8 @@ fn audit(lockfile_path: String, verbose_output: bool, enable_color: bool) -> ! {
     }
   };
 
-  let api_key: String = get_api_key();
+  let api_key: String = get_api_key().unwrap_or_default();
+
   let client = OSSIndexClient::new(api_key);
   let mut coordinates: Vec<Coordinate> = Vec::new();
   for chunk in packages.chunks(128) {
@@ -446,10 +457,8 @@ fn write_package_output(
 ) -> io::Result<()> {
   use ansi_term::{Color, Style};
 
-  let vulnerability = match vulnerable {
-      true => "Vulnerable",
-      false => "Non-vulnerable",
-  };
+  let vulnerability = ternary!(vulnerable, "Vulnerable", "Non-vulnerable");
+
   writeln!(output, "\n{} Dependencies\n", vulnerability)?;
 
   for (index, coordinate) in coordinates
