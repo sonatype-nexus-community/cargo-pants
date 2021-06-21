@@ -207,7 +207,6 @@ impl IQClient {
   }
 
   pub fn audit_with_iq_server(&self, sbom: String) -> Result<ReportResults, Box<dyn Error>> {
-
     let app = &self.application;
     let internal_application_id = match self.get_internal_application_id(app.to_string()) {
       Ok(internal_application_id) => internal_application_id,
@@ -269,7 +268,15 @@ impl IQClient {
   fn get_internal_application_id(&self, application: String) -> Result<ApplicationResponse, reqwest::Error> {
     let client = Client::new();
 
-    let url = Url::parse(&format!("{}{}{}", &self.server, "/api/v2/applications?publicId=", &application)).unwrap();
+    let url = Url::parse(
+      &format!(
+        "{}{}{}", 
+        &self.server, 
+        "/api/v2/applications?publicId=", 
+        &application
+      )
+    ).unwrap();
+
     let mut res = client.get(url)
       .basic_auth(&self.user.to_string(), Some(&self.token.to_string()))
       .send()?;
@@ -280,7 +287,16 @@ impl IQClient {
   fn submit_to_third_party_api(&self, internal_application_id: String, sbom: String) -> Result<SbomSubmitResult, reqwest::Error> {
     let client = Client::new();
 
-    let url = Url::parse(&format!("{}{}{}{}{}", &self.server, "/api/v2/scan/applications/", internal_application_id, "/sources/cargo-pants?stageId=", &self.stage)).unwrap();
+    let url = Url::parse(
+      &format!(
+        "{}{}{}{}{}", 
+        &self.server, 
+        "/api/v2/scan/applications/", 
+        internal_application_id, 
+        "/sources/cargo-pants?stageId=", 
+        &self.stage
+      )
+    ).unwrap();
 
     let body = Body::from(sbom);
     let mut res = client.post(url)
