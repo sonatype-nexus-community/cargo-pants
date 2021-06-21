@@ -14,6 +14,18 @@
 #[macro_use]
 extern crate clap;
 
+use dirs::home_dir;
+use log4rs::config::Root;
+use log4rs::config::Logger;
+use log4rs::config::Appender;
+use log4rs::Config;
+use log4rs::encode::pattern::PatternEncoder;
+use log4rs::append::file::FileAppender;
+use log::LevelFilter;
+use log::{info, debug, trace, error};
+use cargo_pants::iq::OpenPolicyViolations;
+use cli_table::TableStruct;
+use console::StyledObject;
 use cargo_pants::IQClient;
 use cargo_pants::Error;
 use cargo_pants::CycloneDXGenerator;
@@ -25,16 +37,24 @@ use std::io::{stdout, Write};
 use std::{env, io, process};
 use indicatif::{ProgressBar, ProgressStyle};
 use console::{Emoji, style};
+use cli_table::{format::Justify, format::Border, print_stdout, Cell, Style, Table};
 
 const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
 
 static LOOKING_GLASS: Emoji<'_, '_> = Emoji("🔍 ", "");
 static SPARKIES: Emoji<'_, '_> = Emoji("✨ ", "");
-static WHITE_HEAVY_CHECK_MARK: Emoji<'_, '_> = Emoji("✅ ", "");
 static CROSS_MARK: Emoji<'_, '_> = Emoji("❌ ", "");
+static CRAB: Emoji<'_, '_> = Emoji("🦀 ", "");
+static SHIP: Emoji<'_, '_> = Emoji("🚢 ", "");
+static CONSTRUCTION: Emoji<'_, '_> = Emoji("🚧 ", "");
+
+macro_rules! ternary {
+  ($c:expr, $v:expr, $v1:expr) => {
+      if $c {$v} else {$v1}
+  };
+}
 
 fn main() {
-  env_logger::init();
   let lockfile_arg = Arg::with_name("lockfile")
     .short("l")
     .long("lockfile")
@@ -107,6 +127,7 @@ fn main() {
 
   match matches.subcommand() {
     ("pants", Some(sub_m)) => {
+      construct_logger(false);
       if sub_m.is_present("pants_style") {
         let pants_style = String::from(sub_m.value_of("pants_style").unwrap());
         check_pants(pants_style);
@@ -119,6 +140,7 @@ fn main() {
       audit(lockfile_path.to_string(), verbose_output, enable_color);
     },
     ("iq", Some(sub_m)) => {
+      construct_logger(true);
       banner();
       let spinner_style = ProgressStyle::default_spinner()
         .template("{prefix:.bold.dim} {wide_msg}");
@@ -129,7 +151,7 @@ fn main() {
       let lockfile_path = matches.value_of("lockfile").unwrap();
       match get_packages(lockfile_path.to_string()) {
         Ok(packages) => {
-          package_bar.finish_with_message(format!("{}{}", WHITE_HEAVY_CHECK_MARK, "Obtained package list"));
+          package_bar.finish_with_message(format!("{}{}", CRAB, "Obtained package list"));
 
           let sbom_bar = ProgressBar::new_spinner();
           sbom_bar.set_style(spinner_style.clone());
@@ -138,7 +160,7 @@ fn main() {
           let purls: Vec<String> = packages.iter().map(|pkg| pkg.as_purl()).collect();
           let sbom_generator = CycloneDXGenerator{};
           let sbom = sbom_generator.generate_sbom_from_purls(purls);
-          sbom_bar.finish_with_message(format!("{}{}", WHITE_HEAVY_CHECK_MARK, "SBOM generated"));
+          sbom_bar.finish_with_message(format!("{}{}", CRAB, "SBOM generated"));
 
           let server = String::from(sub_m.value_of("iq-server-url").unwrap());
           let user = String::from(sub_m.value_of("iq-username").unwrap());
@@ -154,50 +176,43 @@ fn main() {
           let iq = IQClient::new(server.clone(), user, token, stage, application, attempts);
           match iq.audit_with_iq_server(sbom) {
             Ok(res) => {
-              iq_bar.finish_with_message(format!("{}{}", WHITE_HEAVY_CHECK_MARK, "Nexus IQ Results obtained"));
+              iq_bar.finish_with_message(format!("{}{}", CRAB, "Nexus IQ Results obtained"));
               println!("");
+
+              let table = generate_summary_table(res.url_results.open_policy_violations);
 
               match res.url_results.policy_action.as_ref() {
                 "Failure" => {
-                  println!(
-                    "{}{}/{}", 
-                    style("DANGER! Policy violations exist in your scan\nReport URL: ").red().bold(), 
+                  print_iq_summary(
+                    CRAB,
+                    style("Aw Crabs! Policy violations exist in your scan.").red().bold(), 
+                    table, 
                     server, 
-                    res.url_results.report_html_url
-                  );
-                  println!("");
-                  println!("{}{}", style("Critical policy violations ").red().bold(), res.url_results.open_policy_violations.critical);
-                  println!("{}{}", style("Severe policy violations ").yellow().bold(), res.url_results.open_policy_violations.severe);
-                  println!("{}{}", style("Moderate policy violations ").cyan().bold(), res.url_results.open_policy_violations.moderate);
+                    res.url_results.report_html_url);
+
+                  process::exit(1);
                 }
                 "Warning" => {
-                  println!(
-                    "{}{}/{}", 
-                    style("WARNING! Warnings have been found in your scan\nReport URL: ").yellow().bold(), 
+                  print_iq_summary(
+                    CONSTRUCTION,
+                    style("Barnacles! Warnings have been detected in your scan.").yellow().bold(), 
+                    table, 
                     server, 
-                    res.url_results.report_html_url
-                  );
-                  println!("");
-                  println!("{}{}", style("Critical policy violations ").red().bold(), res.url_results.open_policy_violations.critical);
-                  println!("{}{}", style("Severe policy violations ").yellow().bold(), res.url_results.open_policy_violations.severe);
-                  println!("{}{}", style("Moderate policy violations ").cyan().bold(), res.url_results.open_policy_violations.moderate);
+                    res.url_results.report_html_url);
                 }
                 "None" => {
-                  println!(
-                    "{}{}/{}", 
-                    style("Smooth sailing! No policy issues found in your scan\nReport URL: ").green().bold(), 
-                    server,
-                    res.url_results.report_html_url
-                  );
-                  println!("");
-                  println!("{}{}", style("Critical policy violations ").red().bold(), res.url_results.open_policy_violations.critical);
-                  println!("{}{}", style("Severe policy violations ").yellow().bold(), res.url_results.open_policy_violations.severe);
-                  println!("{}{}", style("Moderate policy violations ").cyan().bold(), res.url_results.open_policy_violations.moderate);
+                  print_iq_summary(
+                    SHIP,
+                    style("Smooth sailing! No policy issues found in your scan.").green().bold(), 
+                    table, 
+                    server, 
+                    res.url_results.report_html_url);
                 },
                 _ => {
                   println!(
                     "{}", "The response from Nexus IQ Server did not include a policy action, which is odd"
                   );
+
                   process::exit(1);
                 }
               }
@@ -207,6 +222,7 @@ fn main() {
                 format!("{}{}", CROSS_MARK, "Error generating Nexus IQ Server results")
               );
               println!("{}", e);
+
               process::exit(1);
             }
           }
@@ -214,12 +230,67 @@ fn main() {
         Err(e) => {
           package_bar.finish_with_message(format!("{}{}", CROSS_MARK, "Unable to obtain package list"));
           println!("{}", e);
+
           process::exit(1);
         }
       };
     }
     _ => print_no_command_found()
   }
+}
+
+fn construct_logger(iq: bool) {
+  static FILENAME: &str = "cargo-pants.combined.log";
+  static IQ_DIR: &str = ".iqserver";
+  static OSS_INDEX_DIR: &str = ".ossindex";
+  let home = home_dir().unwrap();
+
+  let log_location_base_dir = ternary!(iq, home.join(IQ_DIR), home.join(OSS_INDEX_DIR));
+
+  let file = FileAppender::builder()
+    .encoder(Box::new(PatternEncoder::new("{d} - {m}{n}")))
+    .build(log_location_base_dir.join(FILENAME))
+    .unwrap();
+
+  let config = Config::builder()
+    .appender(Appender::builder().build("file", Box::new(file)))
+    .logger(Logger::builder()
+      .appender("file")
+      .additive(true)
+      .build("app::file", LevelFilter::Info))
+    .build(Root::builder().appender("file").build(LevelFilter::Debug))
+    .unwrap();
+
+  let _handle = log4rs::init_config(config).unwrap();
+}
+
+fn print_iq_summary(emoji: Emoji, summary_line: StyledObject<&str>, table: TableStruct, server: String, html_url: String) {
+  println!(
+    "{}{}",
+    emoji,
+    summary_line
+  );
+  println!("");
+  assert!(print_stdout(table).is_ok());
+  println!("");
+  println!("{}{}/{}", style("Report URL: ").dim(), server, html_url);
+}
+
+fn generate_summary_table(policy_violations: OpenPolicyViolations) -> TableStruct {
+  debug!("Generating summary table with policy violations {:?}", policy_violations);
+
+  return vec![
+    vec![style("Critical").red().bold().cell(), policy_violations.critical.cell().justify(Justify::Right)],
+    vec![style("Severe").yellow().bold().cell(), policy_violations.severe.cell().justify(Justify::Right)],
+    vec![style("Moderate").cyan().bold().cell(), policy_violations.moderate.cell().justify(Justify::Right)],
+    ]
+    .table()
+    .border(Border::builder().build())
+    .title(vec![
+        "Policy Violation Type".cell().bold(true),
+        "Total".cell().bold(true),
+    ])
+    .bold(true);
 }
 
 fn print_no_command_found() {
@@ -239,13 +310,19 @@ pub fn get_api_key() -> String {
 }
 
 fn get_packages(lockfile_path: String) -> Result<Vec<Package>, Error> {
+  debug!("Attempting to get package list from {}", lockfile_path);
+
   match Lockfile::load(lockfile_path) {
     Ok(f) => {
+      debug!("Got packages from lockfile, cloning and moving forward");
       let packages: Vec<Package> = f.packages.clone();
 
       return Ok(packages);
     },
-    Err(e) => return Err(e)
+    Err(e) => {
+      error!("Encountered error in get_packages, attempting to load Lockfile");
+      return Err(e)
+    }
   };
 }
 
