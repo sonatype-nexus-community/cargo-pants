@@ -578,7 +578,7 @@ mod tests {
     #[test]
     fn empty_get_api_key() {
         let empty_env_value = get_api_key();
-        assert_eq!(empty_env_value, "");
+        assert_eq!(empty_env_value.as_deref().unwrap_or(""), "");
     }
 
     fn setup_test_coordinates() -> (Vec<Coordinate>, u32) {
