@@ -14,31 +14,31 @@
 #[macro_use]
 extern crate clap;
 
-use clap::ArgMatches;
-use log4rs::encode::json::JsonEncoder;
-use dirs::home_dir;
-use log4rs::config::Root;
-use log4rs::config::Logger;
-use log4rs::config::Appender;
-use log4rs::Config;
-use log4rs::append::file::FileAppender;
-use log::LevelFilter;
-use log::{debug, info, error};
 use cargo_pants::iq::OpenPolicyViolations;
-use cli_table::TableStruct;
-use console::StyledObject;
-use cargo_pants::IQClient;
-use cargo_pants::Error;
 use cargo_pants::CycloneDXGenerator;
+use cargo_pants::Error;
+use cargo_pants::IQClient;
 use cargo_pants::{
     client::OSSIndexClient, coordinate::Coordinate, lockfile::Lockfile, package::Package,
 };
+use clap::ArgMatches;
 use clap::{App, Arg, SubCommand};
+use cli_table::TableStruct;
+use cli_table::{format::Border, format::Justify, print_stdout, Cell, Style, Table};
+use console::StyledObject;
+use console::{style, Emoji};
+use dirs::home_dir;
+use indicatif::{ProgressBar, ProgressStyle};
+use log::LevelFilter;
+use log::{debug, error, info};
+use log4rs::append::file::FileAppender;
+use log4rs::config::Appender;
+use log4rs::config::Logger;
+use log4rs::config::Root;
+use log4rs::encode::json::JsonEncoder;
+use log4rs::Config;
 use std::io::{stdout, Write};
 use std::{env, io, process};
-use indicatif::{ProgressBar, ProgressStyle};
-use console::{Emoji, style};
-use cli_table::{format::Justify, format::Border, print_stdout, Cell, Style, Table};
 
 const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
 
@@ -50,25 +50,29 @@ static SHIP: Emoji<'_, '_> = Emoji("🚢 ", "");
 static CONSTRUCTION: Emoji<'_, '_> = Emoji("🚧 ", "");
 
 macro_rules! ternary {
-  ($c:expr, $v:expr, $v1:expr) => {
-      if $c {$v} else {$v1}
-  };
+    ($c:expr, $v:expr, $v1:expr) => {
+        if $c {
+            $v
+        } else {
+            $v1
+        }
+    };
 }
 
 fn main() {
-  let lockfile_arg = Arg::with_name("lockfile")
-    .long("lockfile")
-    .takes_value(true)
-    .help("The path to your Cargo.lock file")
-    .default_value(CARGO_DEFAULT_LOCKFILE);
+    let lockfile_arg = Arg::with_name("lockfile")
+        .long("lockfile")
+        .takes_value(true)
+        .help("The path to your Cargo.lock file")
+        .default_value(CARGO_DEFAULT_LOCKFILE);
 
-  let logger_arg = Arg::with_name("verbose")
+    let logger_arg = Arg::with_name("verbose")
     .short("v")
     .takes_value(false)
     .multiple(true)
     .help("Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v");
 
-  let matches = App::new("Cargo Pants")
+    let matches = App::new("Cargo Pants")
     .version(crate_version!())
     .bin_name("cargo")
     .author("Glenn Mohre <glennmohre@gmail.com>")
@@ -134,202 +138,226 @@ fn main() {
     )
     .get_matches();
 
-  match matches.subcommand() {
-    ("pants", Some(sub_m)) => {
-      let log_level = get_log_level_filter(sub_m);
+    match matches.subcommand() {
+        ("pants", Some(sub_m)) => {
+            let log_level = get_log_level_filter(sub_m);
 
-      construct_logger(false, log_level);
+            construct_logger(false, log_level);
 
-      handle_pants_sub_command(sub_m);
-    },
-    ("iq", Some(sub_m)) => {
-      let log_level = get_log_level_filter(sub_m);
+            handle_pants_sub_command(sub_m);
+        }
+        ("iq", Some(sub_m)) => {
+            let log_level = get_log_level_filter(sub_m);
 
-      banner();
+            banner();
 
-      construct_logger(true, log_level);
+            construct_logger(true, log_level);
 
-      handle_iq_sub_command(sub_m);
+            handle_iq_sub_command(sub_m);
+        }
+        _ => print_no_command_found(),
     }
-    _ => print_no_command_found()
-  }
 }
 
 fn handle_pants_sub_command(sub_m: &ArgMatches) {
-  if sub_m.is_present("pants_style") {
-    let pants_style = String::from(sub_m.value_of("pants_style").unwrap());
-    check_pants(pants_style);
-  }
+    if sub_m.is_present("pants_style") {
+        let pants_style = String::from(sub_m.value_of("pants_style").unwrap());
+        check_pants(pants_style);
+    }
 
-  let lockfile_path = sub_m.value_of("lockfile").unwrap();
-  let verbose_output = sub_m.is_present("loud");
-  let enable_color: bool = !sub_m.is_present("no-color");
+    let lockfile_path = sub_m.value_of("lockfile").unwrap();
+    let verbose_output = sub_m.is_present("loud");
+    let enable_color: bool = !sub_m.is_present("no-color");
 
-  audit(lockfile_path.to_string(), verbose_output, enable_color);
-} 
+    audit(lockfile_path.to_string(), verbose_output, enable_color);
+}
 
 fn handle_iq_sub_command(sub_m: &ArgMatches) {
-  let spinner_style = ProgressStyle::default_spinner()
-      .template("{prefix:.bold.dim} {wide_msg}");
-  let package_bar = ProgressBar::new_spinner();
-  package_bar.set_style(spinner_style.clone());
-  package_bar.set_message(format!("{}{}", LOOKING_GLASS, "Getting package list"));
+    let spinner_style = ProgressStyle::default_spinner().template("{prefix:.bold.dim} {wide_msg}");
+    let package_bar = ProgressBar::new_spinner();
+    package_bar.set_style(spinner_style.clone());
+    package_bar.set_message(format!("{}{}", LOOKING_GLASS, "Getting package list"));
 
-  let lockfile_path = sub_m.value_of("lockfile").unwrap();
-  match get_packages(lockfile_path.to_string()) {
-    Ok(packages) => {
-      package_bar.finish_with_message(format!("{}{}", CRAB, "Obtained package list"));
+    let lockfile_path = sub_m.value_of("lockfile").unwrap();
+    match get_packages(lockfile_path.to_string()) {
+        Ok(packages) => {
+            package_bar.finish_with_message(format!("{}{}", CRAB, "Obtained package list"));
 
-      let sbom_bar = ProgressBar::new_spinner();
-      sbom_bar.set_style(spinner_style.clone());
+            let sbom_bar = ProgressBar::new_spinner();
+            sbom_bar.set_style(spinner_style.clone());
 
-      sbom_bar.set_message(format!("{}{}", SPARKIES, "Generating SBOM representation of project"));
-      let purls: Vec<String> = packages.iter().map(|pkg| pkg.as_purl()).collect();
-      let sbom_generator = CycloneDXGenerator{};
-      let sbom = sbom_generator.generate_sbom_from_purls(purls);
-      sbom_bar.finish_with_message(format!("{}{}", CRAB, "SBOM generated"));
+            sbom_bar.set_message(format!(
+                "{}{}",
+                SPARKIES, "Generating SBOM representation of project"
+            ));
+            let purls: Vec<String> = packages.iter().map(|pkg| pkg.as_purl()).collect();
+            let sbom_generator = CycloneDXGenerator {};
+            let sbom = sbom_generator.generate_sbom_from_purls(purls);
+            sbom_bar.finish_with_message(format!("{}{}", CRAB, "SBOM generated"));
 
-      let server = String::from(sub_m.value_of("iq-server-url").unwrap());
-      let user = String::from(sub_m.value_of("iq-username").unwrap());
-      let token = String::from(sub_m.value_of("iq-token").unwrap());
-      let stage = String::from(sub_m.value_of("iq-stage").unwrap());
-      let application = String::from(sub_m.value_of("iq-application").unwrap());
-      let attempts: u32 = String::from(sub_m.value_of("iq-attempts").unwrap()).parse().unwrap();
+            let server = String::from(sub_m.value_of("iq-server-url").unwrap());
+            let user = String::from(sub_m.value_of("iq-username").unwrap());
+            let token = String::from(sub_m.value_of("iq-token").unwrap());
+            let stage = String::from(sub_m.value_of("iq-stage").unwrap());
+            let application = String::from(sub_m.value_of("iq-application").unwrap());
+            let attempts: u32 = String::from(sub_m.value_of("iq-attempts").unwrap())
+                .parse()
+                .unwrap();
 
-      let iq_bar = ProgressBar::new_spinner();
-      iq_bar.set_style(spinner_style.clone());
-      iq_bar.set_message(format!("{}{}", SPARKIES, "Sending SBOM to Nexus IQ Server for evaluation"));
+            let iq_bar = ProgressBar::new_spinner();
+            iq_bar.set_style(spinner_style.clone());
+            iq_bar.set_message(format!(
+                "{}{}",
+                SPARKIES, "Sending SBOM to Nexus IQ Server for evaluation"
+            ));
 
-      let iq = IQClient::new(server.clone(), user, token, stage, application, attempts);
-      match iq.audit_with_iq_server(sbom) {
-        Ok(res) => {
-          iq_bar.finish_with_message(format!("{}{}", CRAB, "Nexus IQ Results obtained"));
-          println!("");
+            let iq = IQClient::new(server.clone(), user, token, stage, application, attempts);
+            match iq.audit_with_iq_server(sbom) {
+                Ok(res) => {
+                    iq_bar.finish_with_message(format!("{}{}", CRAB, "Nexus IQ Results obtained"));
+                    println!("");
 
-          let table = generate_summary_table(res.url_results.open_policy_violations);
+                    let table = generate_summary_table(res.url_results.open_policy_violations);
 
-          match res.url_results.policy_action.as_ref() {
-            "Failure" => {
-              print_iq_summary(
-                CRAB,
-                style("Aw Crabs! Policy violations exist in your scan.").red().bold(), 
-                table, 
-                server, 
-                res.url_results.report_html_url);
+                    match res.url_results.policy_action.as_ref() {
+                        "Failure" => {
+                            print_iq_summary(
+                                CRAB,
+                                style("Aw Crabs! Policy violations exist in your scan.")
+                                    .red()
+                                    .bold(),
+                                table,
+                                server,
+                                res.url_results.report_html_url,
+                            );
 
-              process::exit(1);
-            }
-            "Warning" => {
-              print_iq_summary(
-                CONSTRUCTION,
-                style("Barnacles! Warnings have been detected in your scan.").yellow().bold(), 
-                table, 
-                server, 
-                res.url_results.report_html_url);
-            }
-            "None" => {
-              print_iq_summary(
-                SHIP,
-                style("Smooth sailing! No policy issues found in your scan.").green().bold(), 
-                table, 
-                server, 
-                res.url_results.report_html_url);
-            },
-            _ => {
-              println!(
+                            process::exit(1);
+                        }
+                        "Warning" => {
+                            print_iq_summary(
+                                CONSTRUCTION,
+                                style("Barnacles! Warnings have been detected in your scan.")
+                                    .yellow()
+                                    .bold(),
+                                table,
+                                server,
+                                res.url_results.report_html_url,
+                            );
+                        }
+                        "None" => {
+                            print_iq_summary(
+                                SHIP,
+                                style("Smooth sailing! No policy issues found in your scan.")
+                                    .green()
+                                    .bold(),
+                                table,
+                                server,
+                                res.url_results.report_html_url,
+                            );
+                        }
+                        _ => {
+                            println!(
                 "{}", "The response from Nexus IQ Server did not include a policy action, which is odd"
               );
 
-              process::exit(1);
+                            process::exit(1);
+                        }
+                    }
+                }
+                Err(e) => {
+                    iq_bar.finish_with_message(format!(
+                        "{}{}",
+                        CROSS_MARK, "Error generating Nexus IQ Server results"
+                    ));
+                    println!("{}", e);
+
+                    process::exit(1);
+                }
             }
-          }
-        },
-        Err(e) => {
-          iq_bar.finish_with_message(
-            format!("{}{}", CROSS_MARK, "Error generating Nexus IQ Server results")
-          );
-          println!("{}", e);
-
-          process::exit(1);
         }
-      }
-    },
-    Err(e) => {
-      package_bar.finish_with_message(format!("{}{}", CROSS_MARK, "Unable to obtain package list"));
-      println!("{}", e);
+        Err(e) => {
+            package_bar
+                .finish_with_message(format!("{}{}", CROSS_MARK, "Unable to obtain package list"));
+            println!("{}", e);
 
-      process::exit(1);
-    }
-  };
+            process::exit(1);
+        }
+    };
 }
 
 fn get_log_level_filter(matches: &ArgMatches) -> LevelFilter {
-  match matches.occurrences_of("verbose") {
-    1 => {
-      return LevelFilter::Warn
-    },
-    2 => {
-      return LevelFilter::Info
-    },
-    3 => {
-      return LevelFilter::Debug
-    },
-    4 => {
-      return LevelFilter::Trace
-    }
-    _ => {
-      return LevelFilter::Error
-    }
-  };
+    match matches.occurrences_of("verbose") {
+        1 => return LevelFilter::Warn,
+        2 => return LevelFilter::Info,
+        3 => return LevelFilter::Debug,
+        4 => return LevelFilter::Trace,
+        _ => return LevelFilter::Error,
+    };
 }
 
 fn construct_logger(iq: bool, log_level_filter: LevelFilter) {
-  let home = home_dir().unwrap();
+    let home = home_dir().unwrap();
 
-  let log_location_base_dir = ternary!(iq, home.join(".iqserver"), home.join(".ossindex"));
-  let full_log_location = log_location_base_dir.join("cargo-pants.combined.log");
+    let log_location_base_dir = ternary!(iq, home.join(".iqserver"), home.join(".ossindex"));
+    let full_log_location = log_location_base_dir.join("cargo-pants.combined.log");
 
-  let file = FileAppender::builder()
-    .encoder(Box::new(JsonEncoder::new()))
-    .build(full_log_location.clone())
-    .unwrap();
+    let file = FileAppender::builder()
+        .encoder(Box::new(JsonEncoder::new()))
+        .build(full_log_location.clone())
+        .unwrap();
 
-  let config = Config::builder()
-    .appender(Appender::builder().build("file", Box::new(file)))
-    .logger(Logger::builder()
-      .appender("file")
-      .additive(true)
-      .build("app::file", log_level_filter))
-    .build(Root::builder().appender("file").build(log_level_filter))
-    .unwrap();
+    let config = Config::builder()
+        .appender(Appender::builder().build("file", Box::new(file)))
+        .logger(
+            Logger::builder()
+                .appender("file")
+                .additive(true)
+                .build("app::file", log_level_filter),
+        )
+        .build(Root::builder().appender("file").build(log_level_filter))
+        .unwrap();
 
-  let _handle = log4rs::init_config(config).unwrap();
+    let _handle = log4rs::init_config(config).unwrap();
 
-  println!("");
-  println!("Log Level set to: {}", log_level_filter);
-  println!("Logging to: {:?}", full_log_location.clone());
-  println!("");
+    println!("");
+    println!("Log Level set to: {}", log_level_filter);
+    println!("Logging to: {:?}", full_log_location.clone());
+    println!("");
 }
 
-fn print_iq_summary(emoji: Emoji, summary_line: StyledObject<&str>, table: TableStruct, server: String, html_url: String) {
-  println!(
-    "{}{}",
-    emoji,
-    summary_line
-  );
-  println!("");
-  assert!(print_stdout(table).is_ok());
-  println!("");
-  println!("{}{}/{}", style("Report URL: ").dim(), server, html_url);
+fn print_iq_summary(
+    emoji: Emoji,
+    summary_line: StyledObject<&str>,
+    table: TableStruct,
+    server: String,
+    html_url: String,
+) {
+    println!("{}{}", emoji, summary_line);
+    println!("");
+    assert!(print_stdout(table).is_ok());
+    println!("");
+    println!("{}{}/{}", style("Report URL: ").dim(), server, html_url);
 }
 
 fn generate_summary_table(policy_violations: OpenPolicyViolations) -> TableStruct {
-  debug!("Generating summary table with policy violations {:?}", policy_violations);
+    debug!(
+        "Generating summary table with policy violations {:?}",
+        policy_violations
+    );
 
-  return vec![
-    vec![style("Critical").red().bold().cell(), policy_violations.critical.cell().justify(Justify::Right)],
-    vec![style("Severe").yellow().bold().cell(), policy_violations.severe.cell().justify(Justify::Right)],
-    vec![style("Moderate").cyan().bold().cell(), policy_violations.moderate.cell().justify(Justify::Right)],
+    return vec![
+        vec![
+            style("Critical").red().bold().cell(),
+            policy_violations.critical.cell().justify(Justify::Right),
+        ],
+        vec![
+            style("Severe").yellow().bold().cell(),
+            policy_violations.severe.cell().justify(Justify::Right),
+        ],
+        vec![
+            style("Moderate").cyan().bold().cell(),
+            policy_violations.moderate.cell().justify(Justify::Right),
+        ],
     ]
     .table()
     .border(Border::builder().build())
@@ -341,289 +369,287 @@ fn generate_summary_table(policy_violations: OpenPolicyViolations) -> TableStruc
 }
 
 fn print_no_command_found() {
-  println!("Error, this tool is designed to be executed from cargo itself.");
-  println!("Therefore at least the command line parameter 'pants' must be provided.");
+    println!("Error, this tool is designed to be executed from cargo itself.");
+    println!("Therefore at least the command line parameter 'pants' must be provided.");
 }
 
 fn get_api_key() -> Option<String> {
-  match env::var("OSS_INDEX_API_KEY") {
-      Ok(val) => {
-        return Some(val)
-      },
-      Err(e) => {
-        info!("Warning: missing optional 'OSS_INDEX_API_KEY': {}", e);
+    match env::var("OSS_INDEX_API_KEY") {
+        Ok(val) => return Some(val),
+        Err(e) => {
+            info!("Warning: missing optional 'OSS_INDEX_API_KEY': {}", e);
 
-        return None
-      }
-  };
+            return None;
+        }
+    };
 }
 
 fn get_packages(lockfile_path: String) -> Result<Vec<Package>, Error> {
-  debug!("Attempting to get package list from {}", lockfile_path);
+    debug!("Attempting to get package list from {}", lockfile_path);
 
-  match Lockfile::load(lockfile_path) {
-    Ok(f) => {
-      debug!("Got packages from lockfile, cloning and moving forward");
-      let packages: Vec<Package> = f.packages.clone();
+    match Lockfile::load(lockfile_path) {
+        Ok(f) => {
+            debug!("Got packages from lockfile, cloning and moving forward");
+            let packages: Vec<Package> = f.packages.clone();
 
-      return Ok(packages);
-    },
-    Err(e) => {
-      error!("Encountered error in get_packages, attempting to load Lockfile");
-      return Err(e)
-    }
-  };
+            return Ok(packages);
+        }
+        Err(e) => {
+            error!("Encountered error in get_packages, attempting to load Lockfile");
+            return Err(e);
+        }
+    };
 }
 
 fn audit(lockfile_path: String, verbose_output: bool, enable_color: bool) -> ! {
-  let packages = match get_packages(lockfile_path) {
-    Ok(packages) => packages,
-    Err(e) => {
-      println!("{}", e);
-      process::exit(1);
+    let packages = match get_packages(lockfile_path) {
+        Ok(packages) => packages,
+        Err(e) => {
+            println!("{}", e);
+            process::exit(1);
+        }
+    };
+
+    let api_key: String = get_api_key().unwrap_or_default();
+
+    let client = OSSIndexClient::new(api_key);
+    let mut coordinates: Vec<Coordinate> = Vec::new();
+    for chunk in packages.chunks(128) {
+        coordinates.append(&mut client.post_coordinates(chunk.to_vec()));
     }
-  };
 
-  let api_key: String = get_api_key().unwrap_or_default();
+    let mut non_vulnerable_package_count: u32 = 0;
+    let mut vulnerable_package_count: u32 = 0;
 
-  let client = OSSIndexClient::new(api_key);
-  let mut coordinates: Vec<Coordinate> = Vec::new();
-  for chunk in packages.chunks(128) {
-      coordinates.append(&mut client.post_coordinates(chunk.to_vec()));
-  }
+    for coordinate in &coordinates {
+        if coordinate.has_vulnerabilities() {
+            vulnerable_package_count += 1;
+        } else {
+            non_vulnerable_package_count += 1;
+        }
+    }
 
-  let mut non_vulnerable_package_count: u32 = 0;
-  let mut vulnerable_package_count: u32 = 0;
+    let mut stdout = stdout();
+    if verbose_output {
+        banner();
 
-  for coordinate in &coordinates {
-      if coordinate.has_vulnerabilities() {
-          vulnerable_package_count += 1;
-      } else {
-          non_vulnerable_package_count += 1;
-      }
-  }
+        write_package_output(
+            &mut stdout,
+            &coordinates,
+            non_vulnerable_package_count,
+            false,
+            enable_color,
+            None,
+        )
+        .expect("Error writing non-vulnerable packages to output");
+    }
 
-  let mut stdout = stdout();
-  if verbose_output {
-      banner();
+    if vulnerable_package_count > 0 {
+        write_package_output(
+            &mut stdout,
+            &coordinates,
+            vulnerable_package_count,
+            true,
+            enable_color,
+            None,
+        )
+        .expect("Error writing vulnerable packages to output");
+    }
 
-      write_package_output(
-          &mut stdout,
-          &coordinates,
-          non_vulnerable_package_count,
-          false,
-          enable_color,
-          None,
-      )
-      .expect("Error writing non-vulnerable packages to output");
-  }
+    // show a summary so folks know we are not pantless
+    println!(
+        "{}",
+        get_summary_message(coordinates.len() as u32, vulnerable_package_count)
+    );
 
-  if vulnerable_package_count > 0 {
-      write_package_output(
-          &mut stdout,
-          &coordinates,
-          vulnerable_package_count,
-          true,
-          enable_color,
-          None,
-      )
-      .expect("Error writing vulnerable packages to output");
-  }
-
-  // show a summary so folks know we are not pantless
-  println!(
-      "{}",
-      get_summary_message(coordinates.len() as u32, vulnerable_package_count)
-  );
-
-  match vulnerable_package_count {
-      0 => process::exit(0),
-      _ => process::exit(3),
-  }
+    match vulnerable_package_count {
+        0 => process::exit(0),
+        _ => process::exit(3),
+    }
 }
 
 fn banner() {
-  println!("{}", std::include_str!("banner.txt"));
-  println!("{} version: {}", crate_name!(), crate_version!());
+    println!("{}", std::include_str!("banner.txt"));
+    println!("{} version: {}", crate_name!(), crate_version!());
 }
 
 fn write_package_output(
-  output: &mut dyn Write,
-  coordinates: &Vec<Coordinate>,
-  package_count: u32,
-  vulnerable: bool,
-  enable_color: bool,
-  width_override: Option<u16>,
+    output: &mut dyn Write,
+    coordinates: &Vec<Coordinate>,
+    package_count: u32,
+    vulnerable: bool,
+    enable_color: bool,
+    width_override: Option<u16>,
 ) -> io::Result<()> {
-  use ansi_term::{Color, Style};
+    use ansi_term::{Color, Style};
 
-  let vulnerability = ternary!(vulnerable, "Vulnerable", "Non-vulnerable");
+    let vulnerability = ternary!(vulnerable, "Vulnerable", "Non-vulnerable");
 
-  writeln!(output, "\n{} Dependencies\n", vulnerability)?;
+    writeln!(output, "\n{} Dependencies\n", vulnerability)?;
 
-  for (index, coordinate) in coordinates
-      .iter()
-      .filter(|c| vulnerable == c.has_vulnerabilities())
-      .enumerate()
-  {
-      let style: Style = match vulnerable {
-          true => Color::Red.bold(),
-          false => Color::Green.normal(),
-      };
+    for (index, coordinate) in coordinates
+        .iter()
+        .filter(|c| vulnerable == c.has_vulnerabilities())
+        .enumerate()
+    {
+        let style: Style = match vulnerable {
+            true => Color::Red.bold(),
+            false => Color::Green.normal(),
+        };
 
-      if enable_color {
-          writeln!(
-              output,
-              "[{}/{}] {}",
-              index + 1,
-              package_count,
-              style.paint(&coordinate.purl)
-          )?;
-      } else {
-          writeln!(
-              output,
-              "[{}/{}] {}",
-              index + 1,
-              package_count,
-              &coordinate.purl
-          )?;
-      }
-      if vulnerable {
-          let vulnerability_count = coordinate.vulnerabilities.len();
-          let plural_text = match vulnerability_count {
-              1 => "vulnerability",
-              _ => "vulnerabilities",
-          };
+        if enable_color {
+            writeln!(
+                output,
+                "[{}/{}] {}",
+                index + 1,
+                package_count,
+                style.paint(&coordinate.purl)
+            )?;
+        } else {
+            writeln!(
+                output,
+                "[{}/{}] {}",
+                index + 1,
+                package_count,
+                &coordinate.purl
+            )?;
+        }
+        if vulnerable {
+            let vulnerability_count = coordinate.vulnerabilities.len();
+            let plural_text = match vulnerability_count {
+                1 => "vulnerability",
+                _ => "vulnerabilities",
+            };
 
-          let text = format!("{} known {} found", vulnerability_count, plural_text);
-          if enable_color {
-              writeln!(output, "{}", Color::Red.paint(text))?;
-          } else {
-              writeln!(output, "{}", text)?;
-          }
+            let text = format!("{} known {} found", vulnerability_count, plural_text);
+            if enable_color {
+                writeln!(output, "{}", Color::Red.paint(text))?;
+            } else {
+                writeln!(output, "{}", text)?;
+            }
 
-          for vulnerability in &coordinate.vulnerabilities {
-              if !vulnerability.title.is_empty() {
-                  vulnerability
-                      .output_table(output, enable_color, width_override)
-                      .expect("Unable to output Vulnerability details");
-                  writeln!(output, "\n")?;
-              }
-          }
-      }
-  }
-  Ok(())
+            for vulnerability in &coordinate.vulnerabilities {
+                if !vulnerability.title.is_empty() {
+                    vulnerability
+                        .output_table(output, enable_color, width_override)
+                        .expect("Unable to output Vulnerability details");
+                    writeln!(output, "\n")?;
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 fn get_summary_message(component_count: u32, vulnerability_count: u32) -> String {
-  let message = format!(
-      "\nAudited Dependencies: {}\nVulnerable Dependencies: {}\n",
-      component_count, vulnerability_count
-  );
-  return message;
+    let message = format!(
+        "\nAudited Dependencies: {}\nVulnerable Dependencies: {}\n",
+        component_count, vulnerability_count
+    );
+    return message;
 }
 
 fn check_pants(n: String) -> ! {
-  match n.as_ref() {
-      "JNCO" => {
-          println!("{}", "Amber is the color of your energy");
-          process::exit(311)
-      }
-      "Wrangler" => {
-          println!("{}", "The 80s are over, friend");
-          process::exit(1982)
-      }
-      "Levi" => {
-          println!("{}", "Yippie Ki Yay, friendo bendo");
-          process::exit(12251987)
-      }
-      _ => {
-          println!("{}", "Uhhhhh");
-          process::exit(1337)
-      }
-  }
+    match n.as_ref() {
+        "JNCO" => {
+            println!("{}", "Amber is the color of your energy");
+            process::exit(311)
+        }
+        "Wrangler" => {
+            println!("{}", "The 80s are over, friend");
+            process::exit(1982)
+        }
+        "Levi" => {
+            println!("{}", "Yippie Ki Yay, friendo bendo");
+            process::exit(12251987)
+        }
+        _ => {
+            println!("{}", "Uhhhhh");
+            process::exit(1337)
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-  use super::*;
-  use cargo_pants::Vulnerability;
+    use super::*;
+    use cargo_pants::Vulnerability;
 
-  #[test]
-  fn empty_get_api_key() {
-      let empty_env_value = get_api_key();
-      assert_eq!(empty_env_value, "");
-  }
+    #[test]
+    fn empty_get_api_key() {
+        let empty_env_value = get_api_key();
+        assert_eq!(empty_env_value, "");
+    }
 
-  fn setup_test_coordinates() -> (Vec<Coordinate>, u32) {
-      let mut coordinates: Vec<Coordinate> = Vec::new();
+    fn setup_test_coordinates() -> (Vec<Coordinate>, u32) {
+        let mut coordinates: Vec<Coordinate> = Vec::new();
 
-      let mut coord1 = Coordinate::default();
-      coord1.purl = "coord one purl-1vuln".to_owned();
-      let mut coord1_vuln1 = Vulnerability::default();
-      coord1_vuln1.title = "coord1-vuln1 title".to_owned();
-      coord1.vulnerabilities.push(coord1_vuln1);
-      coordinates.push(coord1);
+        let mut coord1 = Coordinate::default();
+        coord1.purl = "coord one purl-1vuln".to_owned();
+        let mut coord1_vuln1 = Vulnerability::default();
+        coord1_vuln1.title = "coord1-vuln1 title".to_owned();
+        coord1.vulnerabilities.push(coord1_vuln1);
+        coordinates.push(coord1);
 
-      let mut coord2 = Coordinate::default();
-      coord2.purl = "coord two purl-3vulns".to_owned();
-      let mut coord2_vuln1 = Vulnerability::default();
-      coord2_vuln1.title = "coord2-vuln1 title".to_owned();
-      coord2.vulnerabilities.push(coord2_vuln1);
+        let mut coord2 = Coordinate::default();
+        coord2.purl = "coord two purl-3vulns".to_owned();
+        let mut coord2_vuln1 = Vulnerability::default();
+        coord2_vuln1.title = "coord2-vuln1 title".to_owned();
+        coord2.vulnerabilities.push(coord2_vuln1);
 
-      // empty title for vuln_two is intentional
-      coord2.vulnerabilities.push(Vulnerability::default());
+        // empty title for vuln_two is intentional
+        coord2.vulnerabilities.push(Vulnerability::default());
 
-      let mut coord2_vuln3 = Vulnerability::default();
-      coord2_vuln3.title = "coord2-vuln3 title".to_owned();
-      coord2.vulnerabilities.push(coord2_vuln3);
-      coordinates.push(coord2);
+        let mut coord2_vuln3 = Vulnerability::default();
+        coord2_vuln3.title = "coord2-vuln3 title".to_owned();
+        coord2.vulnerabilities.push(coord2_vuln3);
+        coordinates.push(coord2);
 
-      let mut coordinate_three = Coordinate::default();
-      coordinate_three.purl = "coord three purl-no vulns".to_owned();
-      coordinates.push(coordinate_three);
+        let mut coordinate_three = Coordinate::default();
+        coordinate_three.purl = "coord three purl-no vulns".to_owned();
+        coordinates.push(coordinate_three);
 
-      let package_count = coordinates.len() as u32;
-      return (coordinates, package_count);
-  }
+        let package_count = coordinates.len() as u32;
+        return (coordinates, package_count);
+    }
 
-  fn convert_output(output: &Vec<u8>) -> &str {
-      std::str::from_utf8(output.as_slice()).unwrap()
-  }
+    fn convert_output(output: &Vec<u8>) -> &str {
+        std::str::from_utf8(output.as_slice()).unwrap()
+    }
 
-  #[test]
-  fn write_package_output_non_vulnerable() {
-      let (coordinates, package_count) = setup_test_coordinates();
-      let mut package_output = Vec::new();
-      write_package_output(
-          &mut package_output,
-          &coordinates,
-          package_count,
-          false,
-          false,
-          Some(30),
-      )
-      .unwrap();
-      assert_eq!(
-          convert_output(&package_output),
-          "\nNon-vulnerable Dependencies\n\n[1/3] coord three purl-no vulns\n"
-      );
-  }
+    #[test]
+    fn write_package_output_non_vulnerable() {
+        let (coordinates, package_count) = setup_test_coordinates();
+        let mut package_output = Vec::new();
+        write_package_output(
+            &mut package_output,
+            &coordinates,
+            package_count,
+            false,
+            false,
+            Some(30),
+        )
+        .unwrap();
+        assert_eq!(
+            convert_output(&package_output),
+            "\nNon-vulnerable Dependencies\n\n[1/3] coord three purl-no vulns\n"
+        );
+    }
 
-  #[test]
-  fn write_package_output_vulnerable() {
-      let (coordinates, package_count) = setup_test_coordinates();
-      let mut package_output = Vec::new();
-      write_package_output(
-          &mut package_output,
-          &coordinates,
-          package_count,
-          true,
-          false,
-          Some(30),
-      )
-      .unwrap();
-      assert_eq!(
+    #[test]
+    fn write_package_output_vulnerable() {
+        let (coordinates, package_count) = setup_test_coordinates();
+        let mut package_output = Vec::new();
+        write_package_output(
+            &mut package_output,
+            &coordinates,
+            package_count,
+            true,
+            false,
+            Some(30),
+        )
+        .unwrap();
+        assert_eq!(
           convert_output(&package_output),
           "\nVulnerable Dependencies\n\n[1/3] coord one purl-1vuln\n1 known vulnerability found\n\
           ╭────────────────────────────╮\
@@ -662,14 +688,14 @@ mod tests {
           ╰─────────────┴──────────────╯\
           \n\n"
       );
-  }
+    }
 
-  #[test]
-  fn get_summary_message_content() {
-      let summary_message = get_summary_message(2, 1);
-      assert_eq!(
-          summary_message,
-          "\nAudited Dependencies: 2\nVulnerable Dependencies: 1\n"
-      );
-  }
+    #[test]
+    fn get_summary_message_content() {
+        let summary_message = get_summary_message(2, 1);
+        assert_eq!(
+            summary_message,
+            "\nAudited Dependencies: 2\nVulnerable Dependencies: 1\n"
+        );
+    }
 }
