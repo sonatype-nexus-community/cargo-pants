@@ -356,3 +356,24 @@ impl IQClient {
         return res.json();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_iqclient() {
+        let server = String::from("iqServerURL");
+        let user = String::from("iqUser");
+        let token = String::from("iqToken");
+        let stage = String::from("iqStage");
+        let app_id = String::from("iqAppId");
+        let client = IQClient::new(server, user, token, stage, app_id, 0);
+        assert_eq!(client.server, "iqServerURL");
+        assert_eq!(client.user, "iqUser");
+        assert_eq!(client.token, "iqToken");
+        assert_eq!(client.stage, "iqStage");
+        assert_eq!(client.application, "iqAppId");
+    }
+}
+
