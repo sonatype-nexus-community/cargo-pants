@@ -368,12 +368,12 @@ mod tests {
         let token = String::from("iqToken");
         let stage = String::from("iqStage");
         let app_id = String::from("iqAppId");
-        let client = IQClient::new(server, user, token, stage, app_id, 0);
+        let client = IQClient::new(server, user, token, stage, app_id, 1);
         assert_eq!(client.server, "iqServerURL");
         assert_eq!(client.user, "iqUser");
         assert_eq!(client.token, "iqToken");
         assert_eq!(client.stage, "iqStage");
         assert_eq!(client.application, "iqAppId");
+        assert_eq!(client.attempts, 1);
     }
 }
-
