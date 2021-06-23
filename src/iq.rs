@@ -363,17 +363,17 @@ mod tests {
 
     #[test]
     fn new_iqclient() {
-        let server = String::from("iqServerURL");
+        let iq_server_url: &str = "iqServerURL";
         let user = String::from("iqUser");
         let token = String::from("iqToken");
         let stage = String::from("iqStage");
         let app_id = String::from("iqAppId");
-        let client = IQClient::new(server, user, token, stage, app_id, 1);
-        assert_eq!(client.server, "iqServerURL");
-        assert_eq!(client.user, "iqUser");
-        assert_eq!(client.token, "iqToken");
-        assert_eq!(client.stage, "iqStage");
-        assert_eq!(client.application, "iqAppId");
+        let client = IQClient::new(iq_server_url.to_string(), user.clone(), token.clone(), stage.clone(), app_id.clone(), 1);
+        assert_eq!(client.server, iq_server_url.to_string());
+        assert_eq!(client.user, user);
+        assert_eq!(client.token, token);
+        assert_eq!(client.stage, stage);
+        assert_eq!(client.application, app_id);
         assert_eq!(client.attempts, 1);
     }
 }
