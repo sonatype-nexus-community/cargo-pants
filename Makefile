@@ -2,6 +2,8 @@
 
 build: lint build-cargo
 
+build-clean: clean build
+
 lint:
 	cargo fmt
 
