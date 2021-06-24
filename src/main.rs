@@ -61,12 +61,13 @@ fn main() {
             println!("Therefore at least the command line parameter 'pants' must be provided.");
         }
         Some(pants_matches) => {
-            if pants_matches.is_present("pants_style") {
-                let pants_style = String::from(pants_matches.value_of("pants_style").unwrap());
+            if let Some(pants_style) = pants_matches.value_of("pants_style") {
                 check_pants(pants_style);
             }
 
-            let lockfile = pants_matches.value_of("lockfile").unwrap();
+            let lockfile = pants_matches
+                .value_of("lockfile")
+                .expect("lockfile command argument not present");
             let verbose_output = pants_matches.is_present("loud");
             let enable_color: bool = !pants_matches.is_present("no-color");
 
@@ -233,8 +234,8 @@ fn get_summary_message(component_count: u32, vulnerability_count: u32) -> String
     return message;
 }
 
-fn check_pants(n: String) -> ! {
-    match n.as_ref() {
+fn check_pants(n: &str) -> ! {
+    match n {
         "JNCO" => {
             println!("{}", "Amber is the color of your energy");
             process::exit(311)
@@ -298,7 +299,7 @@ mod tests {
     }
 
     fn convert_output(output: &Vec<u8>) -> &str {
-        std::str::from_utf8(output.as_slice()).unwrap()
+        std::str::from_utf8(output.as_slice()).expect("Could not convert output to UTF-8")
     }
 
     #[test]
@@ -313,7 +314,7 @@ mod tests {
             false,
             Some(30),
         )
-        .unwrap();
+        .expect("Failed to write package output");
         assert_eq!(
             convert_output(&package_output),
             "\nNon-vulnerable Dependencies\n\n[1/3] coord three purl-no vulns\n"
@@ -332,7 +333,7 @@ mod tests {
             false,
             Some(30),
         )
-        .unwrap();
+        .expect("Failed to write package output");
         assert_eq!(
            convert_output(&package_output),
            "\nVulnerable Dependencies\n\n[1/3] coord one purl-1vuln\n1 known vulnerability found\n\

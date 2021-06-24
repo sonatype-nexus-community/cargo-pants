@@ -73,7 +73,8 @@ mod tests {
             "vulnerabilities": []
         }"##
         .as_bytes();
-        let coordinate: Coordinate = serde_json::from_slice(raw_json).unwrap();
+        let coordinate: Coordinate =
+            serde_json::from_slice(raw_json).expect("failed to parse coordinate JSON");
         assert_eq!(
             coordinate.reference,
             "https://ossindex.sonatype.org/component/pkg:pypi/rust@0.1.1"

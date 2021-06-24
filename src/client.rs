@@ -53,7 +53,10 @@ impl OSSIndexClient {
         let mut headers = HeaderMap::new();
         headers.insert(
             USER_AGENT,
-            HeaderValue::from_str(&format!("cargo-pants/{}", VERSION)).unwrap(),
+            HeaderValue::from_str(&format!("cargo-pants/{}", VERSION)).expect(&format!(
+                "version could not be converted to a header: {}",
+                VERSION
+            )),
         );
         headers
     }
@@ -102,8 +105,10 @@ impl UrlMaker {
     }
 
     pub fn component_report_url(&self) -> Url {
-        let url = self.build_url("component-report").unwrap();
-        return url;
+        self.build_url("component-report").expect(&format!(
+            "Could not construct component-report URL {}",
+            self.api_base
+        ))
     }
 }
 
@@ -156,7 +161,8 @@ mod tests {
             "source": "registry+https://github.com/rust-lang/crates.io-index"
         }"##
         .as_bytes();
-        let value: serde_json::Value = serde_json::from_slice(raw_json).unwrap();
+        let value: serde_json::Value =
+            serde_json::from_slice(raw_json).expect("Failed to parse JSON");
         assert_eq!(value["coordinates"], "pkg:pypi/rust@0.1.1");
         assert_eq!(value["description"], "Ribo-Seq Unit Step Transformation");
     }
@@ -167,11 +173,7 @@ mod tests {
             "version": "0.3.0"
         }"##
         .as_bytes();
-        let package: Package = match serde_json::from_slice::<Package>(package_data) {
-            Ok(p) => p,
-            Err(p) => panic!(format!("Someshit {}", p)),
-        };
-        return package;
+        serde_json::from_slice::<Package>(package_data).expect("Failed to parse package data")
     }
 
     #[test]
@@ -194,7 +196,6 @@ mod tests {
                 ],
             "source": "registry+https://github.com/rust-lang/crates.io-index"
             }"##.as_bytes();
-        //let coord: Coordinate = serde_json::from_slice(raw_json).unwrap();
         let packages: Vec<Package> = vec![test_package_data()];
         let mock = mock("POST", "/component-report?api_key=ALL_YOUR_KEY")
             .with_header("CONTENT_TYPE", "application/json")
