@@ -45,7 +45,7 @@ mod tests {
 
     #[test]
     fn load_cargo_lockfile() {
-        let lockfile = Lockfile::load("Cargo.lock").unwrap();
+        let lockfile = Lockfile::load("Cargo.lock").expect("failed to load project's Cargo.lock file");
         assert!(lockfile.packages.len() > 0);
     }
 
