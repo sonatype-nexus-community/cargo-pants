@@ -15,7 +15,6 @@
 
 #[cfg(feature = "chrono")]
 use chrono;
-use failure::{Backtrace, Context, Fail};
 use std::{
     fmt::{self, Display},
     io,
@@ -27,7 +26,7 @@ use toml;
 #[derive(Debug)]
 pub struct Error {
     /// Contextual information about the error
-    inner: Context<ErrorKind>,
+    inner: ErrorKind,
 
     /// Description of the error providing additional information
     description: String,
@@ -37,24 +36,14 @@ impl Error {
     /// Create a new error with the given description
     pub fn new<S: ToString>(kind: ErrorKind, description: &S) -> Self {
         Self {
-            inner: Context::new(kind),
+            inner: kind,
             description: description.to_string(),
         }
     }
 
     /// Obtain the inner `ErrorKind` for this error
     pub fn kind(&self) -> ErrorKind {
-        *self.inner.get_context()
-    }
-}
-
-impl Fail for Error {
-    fn cause(&self) -> Option<&dyn Fail> {
-        self.inner.cause()
-    }
-
-    fn backtrace(&self) -> Option<&Backtrace> {
-        self.inner.backtrace()
+        self.inner
     }
 }
 
@@ -65,18 +54,18 @@ impl Display for Error {
 }
 
 /// Custom error type for this library
-#[derive(Copy, Clone, Debug, Eq, Fail, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, thiserror::Error, PartialEq)]
 pub enum ErrorKind {
     /// Invalid argument or parameter
-    #[fail(display = "bad parameter")]
+    #[error("bad parameter")]
     BadParam,
 
     /// An error occurred performing an I/O operation (e.g. network, file)
-    #[fail(display = "I/O operation failed")]
+    #[error("I/O operation failed")]
     Io,
 
     /// Couldn't parse response data
-    #[fail(display = "couldn't parse data")]
+    #[error("couldn't parse data")]
     Parse,
 }
 
