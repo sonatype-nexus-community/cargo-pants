@@ -36,7 +36,32 @@ pub enum Error {
     #[error("couldn't parse data")]
     ParseChrono(#[from] chrono::ParseError),
 
-    /// Error processing the Cargo.toml file
-    #[error("couldn't parse the Cargo.toml file")]
-    ParseCargoToml(#[from] toml::de::Error)
+    #[error(r#"couldn't open the Cargo.lock file: "{lock_file}""#)]
+    LockFileOpen {
+        lock_file: String,
+        open_error: std::io::Error
+    },
+
+    /// Error processing the Cargo. file
+    #[error(r#"couldn't parse the Cargo.lock file: "{lock_file}""#)]
+    ParseCargoLockToml {
+        lock_file: String,
+        parse_error: toml::de::Error,
+    },
+}
+
+impl Error {
+    pub fn from_file_open(lock_file: &str, open_error: std::io::Error) -> Self {
+        Self::LockFileOpen {
+            lock_file: lock_file.to_owned(),
+            open_error,
+        }
+    }
+
+    pub fn from_cargo_toml(lock_file: &str, parse_error: toml::de::Error) -> Self {
+        Self::ParseCargoLockToml {
+            lock_file: lock_file.to_owned(),
+            parse_error,
+        }
+    }
 }

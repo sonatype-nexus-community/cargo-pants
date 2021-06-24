@@ -26,18 +26,16 @@ pub struct Lockfile {
 impl Lockfile {
     // Load lock data from a `Cargo.lock` file
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, Error> {
-        let lockfile_str = path.as_ref().to_str().unwrap();
-        let mut file = File::open(path.as_ref())
-            .expect(format!("could not load lockfile: {:?}", lockfile_str).as_str());
+        let lockfile = path.as_ref().to_string_lossy().to_string();
+        let mut file = File::open(path.as_ref()).map_err(|e| Error::from_file_open(&lockfile, e))?;
         let mut toml = String::new();
         file.read_to_string(&mut toml)?;
-        Self::from_toml(&lockfile_str, &toml)
+        Self::from_toml(&lockfile, &toml)
     }
 
     // Parse the TOML data from the `Cargo.lock` file
     pub fn from_toml(lockfile: &str, toml_string: &str) -> Result<Self, Error> {
-        Ok(toml::from_str(toml_string)
-            .expect(format!("could not parse lockfile: {:?}", lockfile).as_str()))
+        toml::from_str(toml_string).map_err(|e| Error::from_cargo_toml(lockfile, e))
     }
 }
 
@@ -52,14 +50,14 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "could not load lockfile: \"nosuchfile.notexist\"")]
     fn load_cargo_lockfile_nonexistant() {
-        Lockfile::load("nosuchfile.notexist").unwrap();
+        let error = Lockfile::load("nosuchfile.notexist").expect_err("Test should have failed");
+        assert_eq!(&format!("{}", error), r#"couldn't open the Cargo.lock file: "nosuchfile.notexist""#);
     }
 
     #[test]
-    #[should_panic(expected = "could not parse lockfile: \"README.md\"")]
     fn load_cargo_lockfile_invalid() {
-        Lockfile::load("README.md").unwrap();
+        let error = Lockfile::load("README.md").expect_err("Test should have failed");
+        assert_eq!(&format!("{}", error), r#"couldn't parse the Cargo.lock file: "README.md""#);
     }
 }
