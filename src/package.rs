@@ -25,7 +25,6 @@ pub struct Package {
 
     /// Crate version (using `semver`)
     pub version: Version,
-
     // /// Source of the crate
     // #[serde(default)]
     // pub source: String,

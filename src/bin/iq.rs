@@ -14,11 +14,12 @@
 #[macro_use]
 extern crate clap;
 
+use cargo_metadata::{CargoOpt, MetadataCommand};
 use cargo_pants::iq::OpenPolicyViolations;
+use cargo_pants::package::Package;
 use cargo_pants::CycloneDXGenerator;
 use cargo_pants::Error;
 use cargo_pants::IQClient;
-use cargo_pants::{package::Package};
 use clap::ArgMatches;
 use clap::{App, Arg, SubCommand};
 use cli_table::TableStruct;
@@ -36,7 +37,6 @@ use log4rs::config::Root;
 use log4rs::encode::json::JsonEncoder;
 use log4rs::Config;
 use std::{env, process};
-use cargo_metadata::{MetadataCommand, CargoOpt};
 
 const CARGO_DEFAULT_TOML: &str = "Cargo.toml";
 
@@ -344,11 +344,18 @@ fn get_packages(toml_file_path: String) -> Result<Vec<Package>, Error> {
     debug!("Attempting to get package list from {}", toml_file_path);
 
     let metadata = MetadataCommand::new()
-    .manifest_path(toml_file_path)
-    .features(CargoOpt::AllFeatures)
-    .exec()?;
+        .manifest_path(toml_file_path)
+        .features(CargoOpt::AllFeatures)
+        .exec()?;
 
-    let packages: Vec<Package> = metadata.packages.into_iter().map(|p: cargo_metadata::Package| { Package{name: p.name, version: p.version} }).collect();
+    let packages: Vec<Package> = metadata
+        .packages
+        .into_iter()
+        .map(|p: cargo_metadata::Package| Package {
+            name: p.name,
+            version: p.version,
+        })
+        .collect();
 
     trace!("Obtained packages {:#?}", packages);
     return Ok(packages);
