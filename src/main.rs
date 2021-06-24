@@ -159,26 +159,25 @@ fn main() {
     }
 }
 
-fn handle_pants_sub_command(sub_m: &ArgMatches) {
-    if sub_m.is_present("pants_style") {
-        let pants_style = String::from(sub_m.value_of("pants_style").unwrap());
+fn handle_pants_sub_command(pants_matches: &ArgMatches) {
+    if let Some(pants_style) = pants_matches.value_of("pants_style") {
         check_pants(pants_style);
     }
 
-    let lockfile_path = sub_m.value_of("lockfile").unwrap();
-    let verbose_output = sub_m.is_present("loud");
-    let enable_color: bool = !sub_m.is_present("no-color");
+    let lockfile_path = pants_matches.value_of("lockfile").unwrap();
+    let verbose_output = pants_matches.is_present("loud");
+    let enable_color: bool = !pants_matches.is_present("no-color");
 
     audit(lockfile_path.to_string(), verbose_output, enable_color);
 }
 
-fn handle_iq_sub_command(sub_m: &ArgMatches) {
+fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
     let spinner_style = ProgressStyle::default_spinner().template("{prefix:.bold.dim} {wide_msg}");
     let package_bar = ProgressBar::new_spinner();
     package_bar.set_style(spinner_style.clone());
     package_bar.set_message(format!("{}{}", LOOKING_GLASS, "Getting package list"));
 
-    let lockfile_path = sub_m.value_of("lockfile").unwrap();
+    let lockfile_path = iq_sub_command.value_of("lockfile").unwrap();
     match get_packages(lockfile_path.to_string()) {
         Ok(packages) => {
             package_bar.finish_with_message(format!("{}{}", CRAB, "Obtained package list"));
@@ -190,19 +189,8 @@ fn handle_iq_sub_command(sub_m: &ArgMatches) {
                 "{}{}",
                 SPARKIES, "Generating SBOM representation of project"
             ));
-            let purls: Vec<String> = packages.iter().map(|pkg| pkg.as_purl()).collect();
-            let sbom_generator = CycloneDXGenerator {};
-            let sbom = sbom_generator.generate_sbom_from_purls(purls);
+            let sbom = handle_packages(packages);
             sbom_bar.finish_with_message(format!("{}{}", CRAB, "SBOM generated"));
-
-            let server = String::from(sub_m.value_of("iq-server-url").unwrap());
-            let user = String::from(sub_m.value_of("iq-username").unwrap());
-            let token = String::from(sub_m.value_of("iq-token").unwrap());
-            let stage = String::from(sub_m.value_of("iq-stage").unwrap());
-            let application = String::from(sub_m.value_of("iq-application").unwrap());
-            let attempts: u32 = String::from(sub_m.value_of("iq-attempts").unwrap())
-                .parse()
-                .unwrap();
 
             let iq_bar = ProgressBar::new_spinner();
             iq_bar.set_style(spinner_style.clone());
@@ -210,8 +198,7 @@ fn handle_iq_sub_command(sub_m: &ArgMatches) {
                 "{}{}",
                 SPARKIES, "Sending SBOM to Nexus IQ Server for evaluation"
             ));
-
-            let iq = IQClient::new(server.clone(), user, token, stage, application, attempts);
+            let iq = obtain_iq_client(iq_sub_command);
             match iq.audit_with_iq_server(sbom) {
                 Ok(res) => {
                     iq_bar.finish_with_message(format!("{}{}", CRAB, "Nexus IQ Results obtained"));
@@ -227,7 +214,7 @@ fn handle_iq_sub_command(sub_m: &ArgMatches) {
                                     .red()
                                     .bold(),
                                 table,
-                                server,
+                                iq.server.clone(),
                                 res.url_results.report_html_url,
                             );
 
@@ -240,7 +227,7 @@ fn handle_iq_sub_command(sub_m: &ArgMatches) {
                                     .yellow()
                                     .bold(),
                                 table,
-                                server,
+                                iq.server.clone(),
                                 res.url_results.report_html_url,
                             );
                         }
@@ -251,13 +238,13 @@ fn handle_iq_sub_command(sub_m: &ArgMatches) {
                                     .green()
                                     .bold(),
                                 table,
-                                server,
+                                iq.server.clone(),
                                 res.url_results.report_html_url,
                             );
                         }
                         _ => {
                             println!(
-                "{}", "The response from Nexus IQ Server did not include a policy action, which is odd"
+              "{}", "The response from Nexus IQ Server did not include a policy action, which is odd"
               );
 
                             process::exit(1);
@@ -282,7 +269,27 @@ fn handle_iq_sub_command(sub_m: &ArgMatches) {
 
             process::exit(1);
         }
-    };
+    }
+}
+
+fn handle_packages(packages: Vec<Package>) -> String {
+    let purls: Vec<String> = packages.iter().map(|pkg| pkg.as_purl()).collect();
+    let sbom_generator = CycloneDXGenerator {};
+
+    return sbom_generator.generate_sbom_from_purls(purls);
+}
+
+fn obtain_iq_client(iq_sub_command: &ArgMatches) -> IQClient {
+    let server = String::from(iq_sub_command.value_of("iq-server-url").unwrap());
+    let user = String::from(iq_sub_command.value_of("iq-username").unwrap());
+    let token = String::from(iq_sub_command.value_of("iq-token").unwrap());
+    let stage = String::from(iq_sub_command.value_of("iq-stage").unwrap());
+    let application = String::from(iq_sub_command.value_of("iq-application").unwrap());
+    let attempts: u32 = String::from(iq_sub_command.value_of("iq-attempts").unwrap())
+        .parse()
+        .unwrap();
+
+    return IQClient::new(server.clone(), user, token, stage, application, attempts);
 }
 
 fn get_log_level_filter(matches: &ArgMatches) -> LevelFilter {
@@ -549,8 +556,8 @@ fn get_summary_message(component_count: u32, vulnerability_count: u32) -> String
     return message;
 }
 
-fn check_pants(n: String) -> ! {
-    match n.as_ref() {
+fn check_pants(n: &str) -> ! {
+    match n {
         "JNCO" => {
             println!("{}", "Amber is the color of your energy");
             process::exit(311)
@@ -614,7 +621,7 @@ mod tests {
     }
 
     fn convert_output(output: &Vec<u8>) -> &str {
-        std::str::from_utf8(output.as_slice()).unwrap()
+        std::str::from_utf8(output.as_slice()).expect("Could not convert output to UTF-8")
     }
 
     #[test]
@@ -629,7 +636,7 @@ mod tests {
             false,
             Some(30),
         )
-        .unwrap();
+        .expect("Failed to write package output");
         assert_eq!(
             convert_output(&package_output),
             "\nNon-vulnerable Dependencies\n\n[1/3] coord three purl-no vulns\n"
@@ -648,7 +655,7 @@ mod tests {
             false,
             Some(30),
         )
-        .unwrap();
+        .expect("Failed to write package output");
         assert_eq!(
           convert_output(&package_output),
           "\nVulnerable Dependencies\n\n[1/3] coord one purl-1vuln\n1 known vulnerability found\n\

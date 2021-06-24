@@ -196,7 +196,7 @@ impl fmt::Display for GeneralError {
 impl Error for GeneralError {}
 
 pub struct IQClient {
-    server: String,
+    pub server: String,
     user: String,
     token: String,
     stage: String,

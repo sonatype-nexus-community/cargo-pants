@@ -114,6 +114,31 @@ The `cargo-pants` logo was grabbed from [www.pexels.com](https://www.pexels.com)
 
 Code for `cargo-pants` was influenced by `cargo-audit`, and we acknowledge we stand on the shoulders of giants.
 
+## Development
+
+You can run your local changes without installing the package via:
+
+```shell
+cargo run pants
+```
+or
+```shell
+cargo run iq --iq-application sandbox-application
+```
+
+Use the commands below to build and install the package locally:
+
+```shell
+cargo build --all --all-targets
+cargo install cargo-pants --force --path .
+```
+
+### Release Process
+
+The Continuous Integration build will automatically perform a new release with every commit to the `main` branch.
+
+To skip performing a release from `main` be sure your commit message includes: `[skip ci]`.
+
 ## The Fine Print
 
 It is worth noting that this is **NOT SUPPORTED** by Sonatype, and is a contribution of ours
