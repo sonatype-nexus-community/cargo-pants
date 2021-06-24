@@ -18,7 +18,7 @@ use cargo_pants::iq::OpenPolicyViolations;
 use cargo_pants::CycloneDXGenerator;
 use cargo_pants::Error;
 use cargo_pants::IQClient;
-use cargo_pants::{lockfile::Lockfile, package::Package};
+use cargo_pants::{package::Package};
 use clap::ArgMatches;
 use clap::{App, Arg, SubCommand};
 use cli_table::TableStruct;
@@ -28,7 +28,7 @@ use console::{style, Emoji};
 use dirs::home_dir;
 use indicatif::{ProgressBar, ProgressStyle};
 use log::LevelFilter;
-use log::{debug, error};
+use log::{debug, error, trace};
 use log4rs::append::file::FileAppender;
 use log4rs::config::Appender;
 use log4rs::config::Logger;
@@ -36,8 +36,9 @@ use log4rs::config::Root;
 use log4rs::encode::json::JsonEncoder;
 use log4rs::Config;
 use std::{env, process};
+use cargo_metadata::{MetadataCommand, CargoOpt};
 
-const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
+const CARGO_DEFAULT_TOML: &str = "Cargo.toml";
 
 static LOOKING_GLASS: Emoji<'_, '_> = Emoji("🔍 ", "");
 static SPARKIES: Emoji<'_, '_> = Emoji("✨ ", "");
@@ -57,11 +58,11 @@ macro_rules! ternary {
 }
 
 fn main() {
-    let lockfile_arg = Arg::with_name("lockfile")
-        .long("lockfile")
+    let lockfile_arg = Arg::with_name("tomlfile")
+        .long("tomlfile")
         .takes_value(true)
-        .help("The path to your Cargo.lock file")
-        .default_value(CARGO_DEFAULT_LOCKFILE);
+        .help("The path to your Cargo.toml file")
+        .default_value(CARGO_DEFAULT_TOML);
 
     let logger_arg = Arg::with_name("verbose")
     .short("v")
@@ -136,8 +137,8 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
     package_bar.set_style(spinner_style.clone());
     package_bar.set_message(format!("{}{}", LOOKING_GLASS, "Getting package list"));
 
-    let lockfile_path = iq_sub_command.value_of("lockfile").unwrap();
-    match get_packages(lockfile_path.to_string()) {
+    let toml_file_path = iq_sub_command.value_of("tomlfile").unwrap();
+    match get_packages(toml_file_path.to_string()) {
         Ok(packages) => {
             package_bar.finish_with_message(format!("{}{}", CRAB, "Obtained package list"));
 
@@ -339,21 +340,18 @@ fn print_no_command_found() {
     println!("Therefore at least the command line parameter 'pants' must be provided.");
 }
 
-fn get_packages(lockfile_path: String) -> Result<Vec<Package>, Error> {
-    debug!("Attempting to get package list from {}", lockfile_path);
+fn get_packages(toml_file_path: String) -> Result<Vec<Package>, Error> {
+    debug!("Attempting to get package list from {}", toml_file_path);
 
-    match Lockfile::load(lockfile_path) {
-        Ok(f) => {
-            debug!("Got packages from lockfile, cloning and moving forward");
-            let packages: Vec<Package> = f.packages.clone();
+    let metadata = MetadataCommand::new()
+    .manifest_path(toml_file_path)
+    .features(CargoOpt::AllFeatures)
+    .exec()?;
 
-            return Ok(packages);
-        }
-        Err(e) => {
-            error!("Encountered error in get_packages, attempting to load Lockfile");
-            return Err(e);
-        }
-    };
+    let packages: Vec<Package> = metadata.packages.into_iter().map(|p: cargo_metadata::Package| { Package{name: p.name, version: p.version} }).collect();
+
+    trace!("Obtained packages {:#?}", packages);
+    return Ok(packages);
 }
 
 fn banner() {

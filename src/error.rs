@@ -36,6 +36,10 @@ pub enum Error {
     #[error("couldn't parse data")]
     ParseChrono(#[from] chrono::ParseError),
 
+    /// A Cargo Metadata error occurred
+    #[error("couldn't get cargo metadata")]
+    CargoMetadataError(#[from] cargo_metadata::Error),
+
     #[error(r#"couldn't open the Cargo.lock file: "{lock_file}""#)]
     LockFileOpen {
         lock_file: String,
