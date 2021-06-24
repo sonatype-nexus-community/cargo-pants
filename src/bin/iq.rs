@@ -29,7 +29,7 @@ use console::{style, Emoji};
 use dirs::home_dir;
 use indicatif::{ProgressBar, ProgressStyle};
 use log::LevelFilter;
-use log::{debug, error, trace};
+use log::{debug, trace};
 use log4rs::append::file::FileAppender;
 use log4rs::config::Appender;
 use log4rs::config::Logger;

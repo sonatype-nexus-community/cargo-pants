@@ -206,13 +206,16 @@ pub struct IQClient {
 
 impl IQClient {
     pub fn new(
-        server: String,
+        mut server: String,
         user: String,
         token: String,
         stage: String,
         application: String,
         attempts: u32,
     ) -> IQClient {
+        if server.ends_with("/") {
+            server = server.trim_end_matches("/").to_string();
+        }
         IQClient {
             server,
             user,
