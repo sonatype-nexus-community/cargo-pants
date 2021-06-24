@@ -14,25 +14,37 @@
 #[macro_use]
 extern crate clap;
 
+use cargo_pants::iq::OpenPolicyViolations;
+use cargo_pants::CycloneDXGenerator;
 use cargo_pants::Error;
-use cargo_pants::{
-    client::OSSIndexClient, coordinate::Coordinate, lockfile::Lockfile, package::Package,
-};
+use cargo_pants::IQClient;
+use cargo_pants::{lockfile::Lockfile, package::Package};
 use clap::ArgMatches;
 use clap::{App, Arg, SubCommand};
+use cli_table::TableStruct;
+use cli_table::{format::Border, format::Justify, print_stdout, Cell, Style, Table};
+use console::StyledObject;
+use console::{style, Emoji};
 use dirs::home_dir;
+use indicatif::{ProgressBar, ProgressStyle};
 use log::LevelFilter;
-use log::{debug, error, info};
+use log::{debug, error};
 use log4rs::append::file::FileAppender;
 use log4rs::config::Appender;
 use log4rs::config::Logger;
 use log4rs::config::Root;
 use log4rs::encode::json::JsonEncoder;
 use log4rs::Config;
-use std::io::{stdout, Write};
-use std::{env, io, process};
+use std::{env, process};
 
 const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
+
+static LOOKING_GLASS: Emoji<'_, '_> = Emoji("🔍 ", "");
+static SPARKIES: Emoji<'_, '_> = Emoji("✨ ", "");
+static CROSS_MARK: Emoji<'_, '_> = Emoji("❌ ", "");
+static CRAB: Emoji<'_, '_> = Emoji("🦀 ", "");
+static SHIP: Emoji<'_, '_> = Emoji("🚢 ", "");
+static CONSTRUCTION: Emoji<'_, '_> = Emoji("🚧 ", "");
 
 macro_rules! ternary {
     ($c:expr, $v:expr, $v1:expr) => {
@@ -62,49 +74,181 @@ fn main() {
     .bin_name("cargo")
     .author("Glenn Mohre <glennmohre@gmail.com>")
     .about("A library for auditing your cargo dependencies for vulnerabilities and checking your pants")
-    .subcommand(SubCommand::with_name("pants")
-      .arg(Arg::with_name("pants_style")
-        .short("s")
-        .long("pants_style")
+    .subcommand(SubCommand::with_name("iq")
+      .arg(Arg::with_name("iq-server-url")
+        .short("x")
+        .long("iq-server-url")
         .takes_value(true)
-        .help("Your pants style"))
-      .arg(Arg::with_name("loud")
-        .short("d")
-        .long("loud")
-        .takes_value(false)
-        .help("Also show non-vulnerable dependencies"))
-      .arg(Arg::with_name("no-color")
-        .short("m")
-        .long("no-color")
-        .takes_value(false)
-        .help("Disable color output"))
+        .help("Specify Nexus IQ server url for request")
+        .default_value("http://localhost:8070"))
+      .arg(Arg::with_name("iq-application")
+        .short("a")
+        .long("iq-application")
+        .required(true)
+        .takes_value(true)
+        .help("Specify Nexus IQ public application ID for request"))
+      .arg(Arg::with_name("iq-username")
+        .short("l")
+        .long("iq-username")
+        .takes_value(true)
+        .default_value("admin")
+        .help("Specify Nexus IQ username for request"))
+      .arg(Arg::with_name("iq-token")
+        .short("k")
+        .long("iq-token")
+        .takes_value(true)
+        .default_value("admin123")
+        .help("Specify Nexus IQ token for request"))
+      .arg(Arg::with_name("iq-stage")
+        .short("s")
+        .long("iq-stage")
+        .takes_value(true)
+        .default_value("develop")
+        .help("Specify Nexus IQ stage for request"))
+      .arg(Arg::with_name("iq-attempts")
+        .short("t")
+        .long("iq-attempts")
+        .takes_value(true)
+        .default_value("60")
+        .help("Specify Nexus IQ attempts in seconds"))
       .arg(logger_arg.clone())
       .arg(lockfile_arg.clone())
     )
     .get_matches();
 
     match matches.subcommand() {
-        ("pants", Some(sub_m)) => {
+        ("iq", Some(sub_m)) => {
             let log_level = get_log_level_filter(sub_m);
 
-            construct_logger(false, log_level);
+            banner();
 
-            handle_pants_sub_command(sub_m);
+            construct_logger(true, log_level);
+
+            handle_iq_sub_command(sub_m);
         }
         _ => print_no_command_found(),
     }
 }
 
-fn handle_pants_sub_command(pants_matches: &ArgMatches) {
-    if let Some(pants_style) = pants_matches.value_of("pants_style") {
-        check_pants(pants_style);
+fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
+    let spinner_style = ProgressStyle::default_spinner().template("{prefix:.bold.dim} {wide_msg}");
+    let package_bar = ProgressBar::new_spinner();
+    package_bar.set_style(spinner_style.clone());
+    package_bar.set_message(format!("{}{}", LOOKING_GLASS, "Getting package list"));
+
+    let lockfile_path = iq_sub_command.value_of("lockfile").unwrap();
+    match get_packages(lockfile_path.to_string()) {
+        Ok(packages) => {
+            package_bar.finish_with_message(format!("{}{}", CRAB, "Obtained package list"));
+
+            let sbom_bar = ProgressBar::new_spinner();
+            sbom_bar.set_style(spinner_style.clone());
+
+            sbom_bar.set_message(format!(
+                "{}{}",
+                SPARKIES, "Generating SBOM representation of project"
+            ));
+            let sbom = handle_packages(packages);
+            sbom_bar.finish_with_message(format!("{}{}", CRAB, "SBOM generated"));
+
+            let iq_bar = ProgressBar::new_spinner();
+            iq_bar.set_style(spinner_style.clone());
+            iq_bar.set_message(format!(
+                "{}{}",
+                SPARKIES, "Sending SBOM to Nexus IQ Server for evaluation"
+            ));
+            let iq = obtain_iq_client(iq_sub_command);
+            match iq.audit_with_iq_server(sbom) {
+                Ok(res) => {
+                    iq_bar.finish_with_message(format!("{}{}", CRAB, "Nexus IQ Results obtained"));
+                    println!("");
+
+                    let table = generate_summary_table(res.url_results.open_policy_violations);
+
+                    match res.url_results.policy_action.as_ref() {
+                        "Failure" => {
+                            print_iq_summary(
+                                CRAB,
+                                style("Aw Crabs! Policy violations exist in your scan.")
+                                    .red()
+                                    .bold(),
+                                table,
+                                iq.server.clone(),
+                                res.url_results.report_html_url,
+                            );
+
+                            process::exit(1);
+                        }
+                        "Warning" => {
+                            print_iq_summary(
+                                CONSTRUCTION,
+                                style("Barnacles! Warnings have been detected in your scan.")
+                                    .yellow()
+                                    .bold(),
+                                table,
+                                iq.server.clone(),
+                                res.url_results.report_html_url,
+                            );
+                        }
+                        "None" => {
+                            print_iq_summary(
+                                SHIP,
+                                style("Smooth sailing! No policy issues found in your scan.")
+                                    .green()
+                                    .bold(),
+                                table,
+                                iq.server.clone(),
+                                res.url_results.report_html_url,
+                            );
+                        }
+                        _ => {
+                            println!(
+              "{}", "The response from Nexus IQ Server did not include a policy action, which is odd"
+              );
+
+                            process::exit(1);
+                        }
+                    }
+                }
+                Err(e) => {
+                    iq_bar.finish_with_message(format!(
+                        "{}{}",
+                        CROSS_MARK, "Error generating Nexus IQ Server results"
+                    ));
+                    println!("{}", e);
+
+                    process::exit(1);
+                }
+            }
+        }
+        Err(e) => {
+            package_bar
+                .finish_with_message(format!("{}{}", CROSS_MARK, "Unable to obtain package list"));
+            println!("{}", e);
+
+            process::exit(1);
+        }
     }
+}
 
-    let lockfile_path = pants_matches.value_of("lockfile").unwrap();
-    let verbose_output = pants_matches.is_present("loud");
-    let enable_color: bool = !pants_matches.is_present("no-color");
+fn handle_packages(packages: Vec<Package>) -> String {
+    let purls: Vec<String> = packages.iter().map(|pkg| pkg.as_purl()).collect();
+    let sbom_generator = CycloneDXGenerator {};
 
-    audit(lockfile_path.to_string(), verbose_output, enable_color);
+    return sbom_generator.generate_sbom_from_purls(purls);
+}
+
+fn obtain_iq_client(iq_sub_command: &ArgMatches) -> IQClient {
+    let server = String::from(iq_sub_command.value_of("iq-server-url").unwrap());
+    let user = String::from(iq_sub_command.value_of("iq-username").unwrap());
+    let token = String::from(iq_sub_command.value_of("iq-token").unwrap());
+    let stage = String::from(iq_sub_command.value_of("iq-stage").unwrap());
+    let application = String::from(iq_sub_command.value_of("iq-application").unwrap());
+    let attempts: u32 = String::from(iq_sub_command.value_of("iq-attempts").unwrap())
+        .parse()
+        .unwrap();
+
+    return IQClient::new(server.clone(), user, token, stage, application, attempts);
 }
 
 fn get_log_level_filter(matches: &ArgMatches) -> LevelFilter {
@@ -147,20 +291,52 @@ fn construct_logger(iq: bool, log_level_filter: LevelFilter) {
     println!("");
 }
 
+fn print_iq_summary(
+    emoji: Emoji,
+    summary_line: StyledObject<&str>,
+    table: TableStruct,
+    server: String,
+    html_url: String,
+) {
+    println!("{}{}", emoji, summary_line);
+    println!("");
+    assert!(print_stdout(table).is_ok());
+    println!("");
+    println!("{}{}/{}", style("Report URL: ").dim(), server, html_url);
+}
+
+fn generate_summary_table(policy_violations: OpenPolicyViolations) -> TableStruct {
+    debug!(
+        "Generating summary table with policy violations {:?}",
+        policy_violations
+    );
+
+    return vec![
+        vec![
+            style("Critical").red().bold().cell(),
+            policy_violations.critical.cell().justify(Justify::Right),
+        ],
+        vec![
+            style("Severe").yellow().bold().cell(),
+            policy_violations.severe.cell().justify(Justify::Right),
+        ],
+        vec![
+            style("Moderate").cyan().bold().cell(),
+            policy_violations.moderate.cell().justify(Justify::Right),
+        ],
+    ]
+    .table()
+    .border(Border::builder().build())
+    .title(vec![
+        "Policy Violation Type".cell().bold(true),
+        "Total".cell().bold(true),
+    ])
+    .bold(true);
+}
+
 fn print_no_command_found() {
     println!("Error, this tool is designed to be executed from cargo itself.");
     println!("Therefore at least the command line parameter 'pants' must be provided.");
-}
-
-fn get_api_key() -> Option<String> {
-    match env::var("OSS_INDEX_API_KEY") {
-        Ok(val) => return Some(val),
-        Err(e) => {
-            info!("Warning: missing optional 'OSS_INDEX_API_KEY': {}", e);
-
-            return None;
-        }
-    };
 }
 
 fn get_packages(lockfile_path: String) -> Result<Vec<Package>, Error> {
@@ -180,173 +356,9 @@ fn get_packages(lockfile_path: String) -> Result<Vec<Package>, Error> {
     };
 }
 
-fn audit(lockfile_path: String, verbose_output: bool, enable_color: bool) -> ! {
-    let packages = match get_packages(lockfile_path) {
-        Ok(packages) => packages,
-        Err(e) => {
-            println!("{}", e);
-            process::exit(1);
-        }
-    };
-
-    let api_key: String = get_api_key().unwrap_or_default();
-
-    let client = OSSIndexClient::new(api_key);
-    let mut coordinates: Vec<Coordinate> = Vec::new();
-    for chunk in packages.chunks(128) {
-        coordinates.append(&mut client.post_coordinates(chunk.to_vec()));
-    }
-
-    let mut non_vulnerable_package_count: u32 = 0;
-    let mut vulnerable_package_count: u32 = 0;
-
-    for coordinate in &coordinates {
-        if coordinate.has_vulnerabilities() {
-            vulnerable_package_count += 1;
-        } else {
-            non_vulnerable_package_count += 1;
-        }
-    }
-
-    let mut stdout = stdout();
-    if verbose_output {
-        banner();
-
-        write_package_output(
-            &mut stdout,
-            &coordinates,
-            non_vulnerable_package_count,
-            false,
-            enable_color,
-            None,
-        )
-        .expect("Error writing non-vulnerable packages to output");
-    }
-
-    if vulnerable_package_count > 0 {
-        write_package_output(
-            &mut stdout,
-            &coordinates,
-            vulnerable_package_count,
-            true,
-            enable_color,
-            None,
-        )
-        .expect("Error writing vulnerable packages to output");
-    }
-
-    // show a summary so folks know we are not pantless
-    println!(
-        "{}",
-        get_summary_message(coordinates.len() as u32, vulnerable_package_count)
-    );
-
-    match vulnerable_package_count {
-        0 => process::exit(0),
-        _ => process::exit(3),
-    }
-}
-
 fn banner() {
-    println!("{}", std::include_str!("banner.txt"));
+    println!("{}", std::include_str!("../banner.txt"));
     println!("{} version: {}", crate_name!(), crate_version!());
-}
-
-fn write_package_output(
-    output: &mut dyn Write,
-    coordinates: &Vec<Coordinate>,
-    package_count: u32,
-    vulnerable: bool,
-    enable_color: bool,
-    width_override: Option<u16>,
-) -> io::Result<()> {
-    use ansi_term::{Color, Style};
-
-    let vulnerability = ternary!(vulnerable, "Vulnerable", "Non-vulnerable");
-
-    writeln!(output, "\n{} Dependencies\n", vulnerability)?;
-
-    for (index, coordinate) in coordinates
-        .iter()
-        .filter(|c| vulnerable == c.has_vulnerabilities())
-        .enumerate()
-    {
-        let style: Style = match vulnerable {
-            true => Color::Red.bold(),
-            false => Color::Green.normal(),
-        };
-
-        if enable_color {
-            writeln!(
-                output,
-                "[{}/{}] {}",
-                index + 1,
-                package_count,
-                style.paint(&coordinate.purl)
-            )?;
-        } else {
-            writeln!(
-                output,
-                "[{}/{}] {}",
-                index + 1,
-                package_count,
-                &coordinate.purl
-            )?;
-        }
-        if vulnerable {
-            let vulnerability_count = coordinate.vulnerabilities.len();
-            let plural_text = match vulnerability_count {
-                1 => "vulnerability",
-                _ => "vulnerabilities",
-            };
-
-            let text = format!("{} known {} found", vulnerability_count, plural_text);
-            if enable_color {
-                writeln!(output, "{}", Color::Red.paint(text))?;
-            } else {
-                writeln!(output, "{}", text)?;
-            }
-
-            for vulnerability in &coordinate.vulnerabilities {
-                if !vulnerability.title.is_empty() {
-                    vulnerability
-                        .output_table(output, enable_color, width_override)
-                        .expect("Unable to output Vulnerability details");
-                    writeln!(output, "\n")?;
-                }
-            }
-        }
-    }
-    Ok(())
-}
-
-fn get_summary_message(component_count: u32, vulnerability_count: u32) -> String {
-    let message = format!(
-        "\nAudited Dependencies: {}\nVulnerable Dependencies: {}\n",
-        component_count, vulnerability_count
-    );
-    return message;
-}
-
-fn check_pants(n: &str) -> ! {
-    match n {
-        "JNCO" => {
-            println!("{}", "Amber is the color of your energy");
-            process::exit(311)
-        }
-        "Wrangler" => {
-            println!("{}", "The 80s are over, friend");
-            process::exit(1982)
-        }
-        "Levi" => {
-            println!("{}", "Yippie Ki Yay, friendo bendo");
-            process::exit(12251987)
-        }
-        _ => {
-            println!("{}", "Uhhhhh");
-            process::exit(1337)
-        }
-    }
 }
 
 #[cfg(test)]

@@ -8,6 +8,14 @@ repository = "https://github.com/sonatype-nexus-community/cargo-pants"
 description = "cargo-pants is a cargo subcommand application that provides a bill of materials and a list of which dependencies have a vulnerability, powered by Sonatype OSSIndex"
 license = "Apache-2.0"
 
+[[bin]]
+name = "cargo-pants"
+
+
+[[bin]]
+name = "cargo-iq"
+path = "src/bin/iq.rs"
+
 [dependencies]
 ansi_term = "0.12.1"
 atty = "0.2"
