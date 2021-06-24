@@ -87,8 +87,10 @@ If vulnerabilities are found, `cargo-pants` exits with status code 3, and prints
 
 ## IQ Usage
 
+More TBD, but experimental usage for Nexus IQ Server now exists:
+
 ```
-cargo-iq 
+cargo-iq
 
 USAGE:
     cargo iq [FLAGS] [OPTIONS] --iq-application <iq-application>
