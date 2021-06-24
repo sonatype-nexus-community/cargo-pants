@@ -14,25 +14,24 @@
 
 //! Crate metadata as parsed from `Cargo.lock`
 
-use semver::Version;
+use cargo_metadata::Version;
 use std::fmt;
 
 /// A Rust package (i.e. crate) as structured in `Cargo.lock`
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Package {
     /// Name of a crate
-    pub name: PackageName,
+    pub name: String,
 
     /// Crate version (using `semver`)
     pub version: Version,
+    // /// Source of the crate
+    // #[serde(default)]
+    // pub source: String,
 
-    /// Source of the crate
-    #[serde(default)]
-    pub source: String,
-
-    /// Dependencies of this crate
-    #[serde(default)]
-    pub dependencies: Vec<String>,
+    // /// Dependencies of this crate
+    // #[serde(default)]
+    // pub dependencies: Vec<String>,
 }
 
 impl Package {

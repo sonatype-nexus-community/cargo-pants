@@ -14,87 +14,183 @@
 #[macro_use]
 extern crate clap;
 
+use cargo_pants::Error;
 use cargo_pants::{
     client::OSSIndexClient, coordinate::Coordinate, lockfile::Lockfile, package::Package,
 };
+use clap::ArgMatches;
 use clap::{App, Arg, SubCommand};
+use dirs::home_dir;
+use log::LevelFilter;
+use log::{debug, error, info};
+use log4rs::append::file::FileAppender;
+use log4rs::config::Appender;
+use log4rs::config::Logger;
+use log4rs::config::Root;
+use log4rs::encode::json::JsonEncoder;
+use log4rs::Config;
 use std::io::{stdout, Write};
 use std::{env, io, process};
 
 const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
 
+macro_rules! ternary {
+    ($c:expr, $v:expr, $v1:expr) => {
+        if $c {
+            $v
+        } else {
+            $v1
+        }
+    };
+}
+
 fn main() {
-    env_logger::init();
+    let lockfile_arg = Arg::with_name("lockfile")
+        .long("lockfile")
+        .takes_value(true)
+        .help("The path to your Cargo.lock file")
+        .default_value(CARGO_DEFAULT_LOCKFILE);
+
+    let logger_arg = Arg::with_name("verbose")
+    .short("v")
+    .takes_value(false)
+    .multiple(true)
+    .help("Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v");
+
     let matches = App::new("Cargo Pants")
-        .version(crate_version!())
-        .bin_name("cargo")
-        .author("Glenn Mohre <glennmohre@gmail.com>")
-        .about("A library for auditing your cargo dependencies for vulnerabilities and checking your pants")
-        .subcommand(SubCommand::with_name("pants")
-            .arg(Arg::with_name("lockfile")
-                .short("l")
-                .long("lockfile")
-                .takes_value(true)
-                .help("The path to your Cargo.lock file")
-                .default_value(CARGO_DEFAULT_LOCKFILE))
-            .arg(Arg::with_name("pants_style")
-                .short("s")
-                .long("pants_style")
-                .takes_value(true)
-                .help("Your pants style"))
-            .arg(Arg::with_name("loud")
-                .short("v")
-                .long("loud")
-                .takes_value(false)
-                .help("Also show non-vulnerable dependencies"))
-            .arg(Arg::with_name("no-color")
-                .short("m")
-                .long("no-color")
-                .takes_value(false)
-                .help("Disable color output"))
-        )
-        .get_matches();
+    .version(crate_version!())
+    .bin_name("cargo")
+    .author("Glenn Mohre <glennmohre@gmail.com>")
+    .about("A library for auditing your cargo dependencies for vulnerabilities and checking your pants")
+    .subcommand(SubCommand::with_name("pants")
+      .arg(Arg::with_name("pants_style")
+        .short("s")
+        .long("pants_style")
+        .takes_value(true)
+        .help("Your pants style"))
+      .arg(Arg::with_name("loud")
+        .short("d")
+        .long("loud")
+        .takes_value(false)
+        .help("Also show non-vulnerable dependencies"))
+      .arg(Arg::with_name("no-color")
+        .short("m")
+        .long("no-color")
+        .takes_value(false)
+        .help("Disable color output"))
+      .arg(logger_arg.clone())
+      .arg(lockfile_arg.clone())
+    )
+    .get_matches();
 
-    match matches.subcommand_matches("pants") {
-        None => {
-            println!("Error, this tool is designed to be executed from cargo itself.");
-            println!("Therefore at least the command line parameter 'pants' must be provided.");
+    match matches.subcommand() {
+        ("pants", Some(sub_m)) => {
+            let log_level = get_log_level_filter(sub_m);
+
+            construct_logger(false, log_level);
+
+            handle_pants_sub_command(sub_m);
         }
-        Some(pants_matches) => {
-            if let Some(pants_style) = pants_matches.value_of("pants_style") {
-                check_pants(pants_style);
-            }
-
-            let lockfile = pants_matches
-                .value_of("lockfile")
-                .expect("lockfile command argument not present");
-            let verbose_output = pants_matches.is_present("loud");
-            let enable_color: bool = !pants_matches.is_present("no-color");
-
-            audit(lockfile.to_string(), verbose_output, enable_color);
-        }
+        _ => print_no_command_found(),
     }
 }
 
-pub fn get_api_key() -> String {
-    let api_key: String = match env::var("OSS_INDEX_API_KEY") {
-        Ok(val) => val,
+fn handle_pants_sub_command(pants_matches: &ArgMatches) {
+    if let Some(pants_style) = pants_matches.value_of("pants_style") {
+        check_pants(pants_style);
+    }
+
+    let lockfile_path = pants_matches.value_of("lockfile").unwrap();
+    let verbose_output = pants_matches.is_present("loud");
+    let enable_color: bool = !pants_matches.is_present("no-color");
+
+    audit(lockfile_path.to_string(), verbose_output, enable_color);
+}
+
+fn get_log_level_filter(matches: &ArgMatches) -> LevelFilter {
+    match matches.occurrences_of("verbose") {
+        1 => return LevelFilter::Warn,
+        2 => return LevelFilter::Info,
+        3 => return LevelFilter::Debug,
+        4 => return LevelFilter::Trace,
+        _ => return LevelFilter::Error,
+    };
+}
+
+fn construct_logger(iq: bool, log_level_filter: LevelFilter) {
+    let home = home_dir().unwrap();
+
+    let log_location_base_dir = ternary!(iq, home.join(".iqserver"), home.join(".ossindex"));
+    let full_log_location = log_location_base_dir.join("cargo-pants.combined.log");
+
+    let file = FileAppender::builder()
+        .encoder(Box::new(JsonEncoder::new()))
+        .build(full_log_location.clone())
+        .unwrap();
+
+    let config = Config::builder()
+        .appender(Appender::builder().build("file", Box::new(file)))
+        .logger(
+            Logger::builder()
+                .appender("file")
+                .additive(true)
+                .build("app::file", log_level_filter),
+        )
+        .build(Root::builder().appender("file").build(log_level_filter))
+        .unwrap();
+
+    let _handle = log4rs::init_config(config).unwrap();
+
+    println!("");
+    println!("Log Level set to: {}", log_level_filter);
+    println!("Logging to: {:?}", full_log_location.clone());
+    println!("");
+}
+
+fn print_no_command_found() {
+    println!("Error, this tool is designed to be executed from cargo itself.");
+    println!("Therefore at least the command line parameter 'pants' must be provided.");
+}
+
+fn get_api_key() -> Option<String> {
+    match env::var("OSS_INDEX_API_KEY") {
+        Ok(val) => return Some(val),
         Err(e) => {
-            println!("Warning: missing optional 'OSS_INDEX_API_KEY': {}", e);
-            "".to_string()
+            info!("Warning: missing optional 'OSS_INDEX_API_KEY': {}", e);
+
+            return None;
         }
     };
-    return api_key;
+}
+
+fn get_packages(lockfile_path: String) -> Result<Vec<Package>, Error> {
+    debug!("Attempting to get package list from {}", lockfile_path);
+
+    match Lockfile::load(lockfile_path) {
+        Ok(f) => {
+            debug!("Got packages from lockfile, cloning and moving forward");
+            let packages: Vec<Package> = f.packages.clone();
+
+            return Ok(packages);
+        }
+        Err(e) => {
+            error!("Encountered error in get_packages, attempting to load Lockfile");
+            return Err(e);
+        }
+    };
 }
 
 fn audit(lockfile_path: String, verbose_output: bool, enable_color: bool) -> ! {
-    let lockfile: Lockfile = Lockfile::load(lockfile_path).unwrap_or_else(|e| {
-        println!("{}", e);
-        process::exit(3);
-    });
+    let packages = match get_packages(lockfile_path) {
+        Ok(packages) => packages,
+        Err(e) => {
+            println!("{}", e);
+            process::exit(1);
+        }
+    };
 
-    let packages: Vec<Package> = lockfile.packages.clone();
-    let api_key: String = get_api_key();
+    let api_key: String = get_api_key().unwrap_or_default();
+
     let client = OSSIndexClient::new(api_key);
     let mut coordinates: Vec<Coordinate> = Vec::new();
     for chunk in packages.chunks(128) {
@@ -166,10 +262,8 @@ fn write_package_output(
 ) -> io::Result<()> {
     use ansi_term::{Color, Style};
 
-    let vulnerability = match vulnerable {
-        true => "Vulnerable",
-        false => "Non-vulnerable",
-    };
+    let vulnerability = ternary!(vulnerable, "Vulnerable", "Non-vulnerable");
+
     writeln!(output, "\n{} Dependencies\n", vulnerability)?;
 
     for (index, coordinate) in coordinates
@@ -263,7 +357,7 @@ mod tests {
     #[test]
     fn empty_get_api_key() {
         let empty_env_value = get_api_key();
-        assert_eq!(empty_env_value, "");
+        assert_eq!(empty_env_value.as_deref().unwrap_or(""), "");
     }
 
     fn setup_test_coordinates() -> (Vec<Coordinate>, u32) {
@@ -335,44 +429,44 @@ mod tests {
         )
         .expect("Failed to write package output");
         assert_eq!(
-           convert_output(&package_output),
-           "\nVulnerable Dependencies\n\n[1/3] coord one purl-1vuln\n1 known vulnerability found\n\
-           ╭────────────────────────────╮\
-           │ coord1-vuln1 title         │\
-           ├─────────────┬──────────────┤\
-           │ Description ┆              │\
-           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-           │  CVSS Score ┆ 0            │\
-           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-           │ CVSS Vector ┆              │\
-           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-           │   Reference ┆              │\
-           ╰─────────────┴──────────────╯\
-           \n\n[2/3] coord two purl-3vulns\n3 known vulnerabilities found\n\
-           ╭────────────────────────────╮\
-           │ coord2-vuln1 title         │\
-           ├─────────────┬──────────────┤\
-           │ Description ┆              │\
-           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-           │  CVSS Score ┆ 0            │\
-           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-           │ CVSS Vector ┆              │\
-           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-           │   Reference ┆              │\
-           ╰─────────────┴──────────────╯\n\n\
-           ╭────────────────────────────╮\
-           │ coord2-vuln3 title         │\
-           ├─────────────┬──────────────┤\
-           │ Description ┆              │\
-           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-           │  CVSS Score ┆ 0            │\
-           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-           │ CVSS Vector ┆              │\
-           ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-           │   Reference ┆              │\
-           ╰─────────────┴──────────────╯\
-           \n\n"
-       );
+          convert_output(&package_output),
+          "\nVulnerable Dependencies\n\n[1/3] coord one purl-1vuln\n1 known vulnerability found\n\
+          ╭────────────────────────────╮\
+          │ coord1-vuln1 title         │\
+          ├─────────────┬──────────────┤\
+          │ Description ┆              │\
+          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+          │  CVSS Score ┆ 0            │\
+          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+          │ CVSS Vector ┆              │\
+          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+          │   Reference ┆              │\
+          ╰─────────────┴──────────────╯\
+          \n\n[2/3] coord two purl-3vulns\n3 known vulnerabilities found\n\
+          ╭────────────────────────────╮\
+          │ coord2-vuln1 title         │\
+          ├─────────────┬──────────────┤\
+          │ Description ┆              │\
+          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+          │  CVSS Score ┆ 0            │\
+          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+          │ CVSS Vector ┆              │\
+          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+          │   Reference ┆              │\
+          ╰─────────────┴──────────────╯\n\n\
+          ╭────────────────────────────╮\
+          │ coord2-vuln3 title         │\
+          ├─────────────┬──────────────┤\
+          │ Description ┆              │\
+          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+          │  CVSS Score ┆ 0            │\
+          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+          │ CVSS Vector ┆              │\
+          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
+          │   Reference ┆              │\
+          ╰─────────────┴──────────────╯\
+          \n\n"
+      );
     }
 
     #[test]

@@ -85,6 +85,31 @@ This disables any coloring of the output.
 
 If vulnerabilities are found, `cargo-pants` exits with status code 3, and prints the Bill Of Materials/Found Vulnerabilities. If there are no issues, it will exit with status code 0.
 
+## IQ Usage
+
+More TBD, but experimental usage for Nexus IQ Server now exists:
+
+```
+cargo-iq
+
+USAGE:
+    cargo iq [FLAGS] [OPTIONS] --iq-application <iq-application>
+
+FLAGS:
+    -h, --help       Prints help information
+    -V, --version    Prints version information
+    -v               Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v
+
+OPTIONS:
+    -a, --iq-application <iq-application>    Specify Nexus IQ public application ID for request
+    -t, --iq-attempts <iq-attempts>          Specify Nexus IQ attempts in seconds [default: 60]
+    -x, --iq-server-url <iq-server-url>      Specify Nexus IQ server url for request [default: http://localhost:8070]
+    -s, --iq-stage <iq-stage>                Specify Nexus IQ stage for request [default: develop]
+    -k, --iq-token <iq-token>                Specify Nexus IQ token for request [default: admin123]
+    -l, --iq-username <iq-username>          Specify Nexus IQ username for request [default: admin]
+        --tomlfile <tomlfile>                The path to your Cargo.toml file [default: Cargo.toml]
+```
+
 ## CI Usage
 
 Similar to `cargo audit` but with more pants, you can run `cargo pants` on your builds on Travis CI using this example config:

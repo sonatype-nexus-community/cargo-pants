@@ -24,12 +24,17 @@ extern crate serde_json;
 
 pub mod client;
 pub mod coordinate;
+pub mod cyclonedx;
 pub mod error;
+pub mod iq;
 pub mod lockfile;
 pub mod package;
 pub mod vulnerability;
 
-pub use crate::{client::*, coordinate::*, error::*, lockfile::*, package::*, vulnerability::*};
+pub use crate::{
+    client::*, coordinate::*, cyclonedx::CycloneDXGenerator, error::*, iq::IQClient, lockfile::*,
+    package::*, vulnerability::*,
+};
 
 // Global Singletons are bad kids. Don't use them (unless you need the terminal width everywhere).
 const DEFAULT_TERM_SIZE: termsize::Size = termsize::Size { cols: 80, rows: 40 };
