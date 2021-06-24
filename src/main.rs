@@ -65,7 +65,9 @@ fn main() {
                 check_pants(pants_style);
             }
 
-            let lockfile = pants_matches.value_of("lockfile").expect("lockfile command argument not present");
+            let lockfile = pants_matches
+                .value_of("lockfile")
+                .expect("lockfile command argument not present");
             let verbose_output = pants_matches.is_present("loud");
             let enable_color: bool = !pants_matches.is_present("no-color");
 

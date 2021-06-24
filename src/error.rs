@@ -39,7 +39,7 @@ pub enum Error {
     #[error(r#"couldn't open the Cargo.lock file: "{lock_file}""#)]
     LockFileOpen {
         lock_file: String,
-        open_error: std::io::Error
+        open_error: std::io::Error,
     },
 
     /// Error processing the Cargo. file

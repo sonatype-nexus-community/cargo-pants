@@ -53,7 +53,10 @@ impl OSSIndexClient {
         let mut headers = HeaderMap::new();
         headers.insert(
             USER_AGENT,
-            HeaderValue::from_str(&format!("cargo-pants/{}", VERSION)).expect(&format!("version could not be converted to a header: {}", VERSION)),
+            HeaderValue::from_str(&format!("cargo-pants/{}", VERSION)).expect(&format!(
+                "version could not be converted to a header: {}",
+                VERSION
+            )),
         );
         headers
     }
@@ -102,7 +105,10 @@ impl UrlMaker {
     }
 
     pub fn component_report_url(&self) -> Url {
-        self.build_url("component-report").expect(&format!("Could not construct component-report URL {}", self.api_base))
+        self.build_url("component-report").expect(&format!(
+            "Could not construct component-report URL {}",
+            self.api_base
+        ))
     }
 }
 
@@ -155,7 +161,8 @@ mod tests {
             "source": "registry+https://github.com/rust-lang/crates.io-index"
         }"##
         .as_bytes();
-        let value: serde_json::Value = serde_json::from_slice(raw_json).expect("Failed to parse JSON");
+        let value: serde_json::Value =
+            serde_json::from_slice(raw_json).expect("Failed to parse JSON");
         assert_eq!(value["coordinates"], "pkg:pypi/rust@0.1.1");
         assert_eq!(value["description"], "Ribo-Seq Unit Step Transformation");
     }
