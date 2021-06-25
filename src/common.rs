@@ -66,6 +66,15 @@ pub fn print_no_command_found() {
     println!("Therefore at least the command line parameter 'pants' must be provided.");
 }
 
+pub fn print_dev_dependencies_info(dev: bool) {
+    if dev {
+        println!("Scanning all dependencies for project due to use of --dev");
+    } else {
+        println!("Scanning only runtime dependencies for project (use --dev to include all dependencies)");
+    }
+    println!("");
+}
+
 
 pub fn get_log_level_filter(matches: &ArgMatches) -> LevelFilter {
     match matches.occurrences_of("verbose") {

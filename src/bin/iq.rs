@@ -103,18 +103,20 @@ fn main() {
 }
 
 fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
+    let dev: bool = iq_sub_command.is_present("dev");
+    common::print_dev_dependencies_info(dev);
+
     let spinner_style = ProgressStyle::default_spinner().template("{prefix:.bold.dim} {wide_msg}");
     let package_bar = ProgressBar::new_spinner();
     package_bar.set_style(spinner_style.clone());
     package_bar.set_message(format!("{}{}", LOOKING_GLASS, "Getting package list"));
 
     let toml_file_path = iq_sub_command.value_of("tomlfile").unwrap();
-    let dev: bool = iq_sub_command.is_present("dev");
 
     let mut parser = ParseCargoToml::new(toml_file_path.to_string(), dev);
     match parser.get_packages() {
         Ok(packages) => {
-            package_bar.finish_with_message(format!("{}{}", CRAB, "Obtained package list"));
+            package_bar.finish_with_message(format!("{}{}", CRAB, format!("Obtained package list ({})", packages.len())));
 
             let sbom_bar = ProgressBar::new_spinner();
             sbom_bar.set_style(spinner_style.clone());

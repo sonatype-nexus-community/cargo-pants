@@ -77,6 +77,8 @@ fn handle_pants_sub_command(pants_matches: &ArgMatches) {
     let enable_color: bool = !pants_matches.is_present("no-color");
     let dev: bool = pants_matches.is_present("dev");
 
+    common::print_dev_dependencies_info(dev);
+
     audit(
         toml_file_path.to_string(),
         verbose_output,
