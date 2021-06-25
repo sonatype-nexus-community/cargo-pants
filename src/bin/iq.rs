@@ -116,7 +116,11 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
     let mut parser = ParseCargoToml::new(toml_file_path.to_string(), dev);
     match parser.get_packages() {
         Ok(packages) => {
-            package_bar.finish_with_message(format!("{}{}", CRAB, format!("Obtained package list ({})", packages.len())));
+            package_bar.finish_with_message(format!(
+                "{}{}",
+                CRAB,
+                format!("Obtained package list ({})", packages.len())
+            ));
 
             let sbom_bar = ProgressBar::new_spinner();
             sbom_bar.set_style(spinner_style.clone());

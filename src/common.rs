@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use clap::{Arg, ArgMatches};
+use dirs::home_dir;
 use log::LevelFilter;
 use log4rs::append::file::FileAppender;
 use log4rs::config::Appender;
@@ -20,7 +21,6 @@ use log4rs::config::Logger;
 use log4rs::config::Root;
 use log4rs::encode::json::JsonEncoder;
 use log4rs::Config;
-use dirs::home_dir;
 
 macro_rules! ternary {
     ($c:expr, $v:expr, $v1:expr) => {
@@ -74,7 +74,6 @@ pub fn print_dev_dependencies_info(dev: bool) {
     }
     println!("");
 }
-
 
 pub fn get_log_level_filter(matches: &ArgMatches) -> LevelFilter {
     match matches.occurrences_of("verbose") {
