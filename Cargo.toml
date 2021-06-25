@@ -10,7 +10,7 @@ license = "Apache-2.0"
 
 [[bin]]
 name = "cargo-pants"
-
+path = "src/bin/pants.rs"
 
 [[bin]]
 name = "cargo-iq"
@@ -26,7 +26,6 @@ futures = "0.1.25"
 http = "0.2.4"
 lazy_static = "1.4.0"
 log = "0.4.0"
-mockito = "0.15.1"
 platforms = "0.1"
 packageurl = "0.2.0"
 reqwest = "0.9.11"
@@ -46,3 +45,6 @@ cli-table = "0.4.6"
 log4rs = "1.0.0"
 dirs = "3.0.2"
 cargo_metadata = "0.13.1"
+
+[dev-dependencies]
+mockito = "0.15.1"

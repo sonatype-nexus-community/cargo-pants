@@ -14,12 +14,12 @@
 #[macro_use]
 extern crate clap;
 
-use cargo_metadata::{CargoOpt, MetadataCommand};
 use cargo_pants::iq::OpenPolicyViolations;
 use cargo_pants::package::Package;
+use cargo_pants::parse::Parser;
 use cargo_pants::CycloneDXGenerator;
-use cargo_pants::Error;
 use cargo_pants::IQClient;
+use cargo_pants::ParseCargoToml;
 use clap::ArgMatches;
 use clap::{App, Arg, SubCommand};
 use cli_table::TableStruct;
@@ -28,8 +28,8 @@ use console::StyledObject;
 use console::{style, Emoji};
 use dirs::home_dir;
 use indicatif::{ProgressBar, ProgressStyle};
+use log::debug;
 use log::LevelFilter;
-use log::{debug, trace};
 use log4rs::append::file::FileAppender;
 use log4rs::config::Appender;
 use log4rs::config::Logger;
@@ -138,7 +138,12 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
     package_bar.set_message(format!("{}{}", LOOKING_GLASS, "Getting package list"));
 
     let toml_file_path = iq_sub_command.value_of("tomlfile").unwrap();
-    match get_packages(toml_file_path.to_string()) {
+
+    let parser = ParseCargoToml {
+        toml_file_path: toml_file_path.to_string(),
+        include_dev: true,
+    };
+    match parser.get_packages() {
         Ok(packages) => {
             package_bar.finish_with_message(format!("{}{}", CRAB, "Obtained package list"));
 
@@ -340,28 +345,7 @@ fn print_no_command_found() {
     println!("Therefore at least the command line parameter 'pants' must be provided.");
 }
 
-fn get_packages(toml_file_path: String) -> Result<Vec<Package>, Error> {
-    debug!("Attempting to get package list from {}", toml_file_path);
-
-    let metadata = MetadataCommand::new()
-        .manifest_path(toml_file_path)
-        .features(CargoOpt::AllFeatures)
-        .exec()?;
-
-    let packages: Vec<Package> = metadata
-        .packages
-        .into_iter()
-        .map(|p: cargo_metadata::Package| Package {
-            name: p.name,
-            version: p.version,
-        })
-        .collect();
-
-    trace!("Obtained packages {:#?}", packages);
-    return Ok(packages);
-}
-
 fn banner() {
-    println!("{}", std::include_str!("../banner.txt"));
+    println!("{}", std::include_str!("banner.txt"));
     println!("{} version: {}", crate_name!(), crate_version!());
 }

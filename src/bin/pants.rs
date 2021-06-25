@@ -14,15 +14,13 @@
 #[macro_use]
 extern crate clap;
 
-use cargo_pants::Error;
-use cargo_pants::{
-    client::OSSIndexClient, coordinate::Coordinate, lockfile::Lockfile, package::Package,
-};
+use cargo_pants::ParseCargoToml;
+use cargo_pants::{client::OSSIndexClient, coordinate::Coordinate};
 use clap::ArgMatches;
 use clap::{App, Arg, SubCommand};
 use dirs::home_dir;
+use log::info;
 use log::LevelFilter;
-use log::{debug, error, info};
 use log4rs::append::file::FileAppender;
 use log4rs::config::Appender;
 use log4rs::config::Logger;
@@ -32,7 +30,7 @@ use log4rs::Config;
 use std::io::{stdout, Write};
 use std::{env, io, process};
 
-const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
+const CARGO_DEFAULT_TOMLFILE: &str = "Cargo.toml";
 
 macro_rules! ternary {
     ($c:expr, $v:expr, $v1:expr) => {
@@ -45,11 +43,15 @@ macro_rules! ternary {
 }
 
 fn main() {
-    let lockfile_arg = Arg::with_name("lockfile")
-        .long("lockfile")
+    let lockfile_arg = Arg::with_name("tomlfile")
+        .long("tomlfile")
         .takes_value(true)
-        .help("The path to your Cargo.lock file")
-        .default_value(CARGO_DEFAULT_LOCKFILE);
+        .help("The path to your Cargo.toml file")
+        .default_value(CARGO_DEFAULT_TOMLFILE);
+
+    let dev_deps = Arg::with_name("dev")
+        .long("dev")
+        .help("A flag to include dev dependencies");
 
     let logger_arg = Arg::with_name("verbose")
     .short("v")
@@ -80,6 +82,7 @@ fn main() {
         .help("Disable color output"))
       .arg(logger_arg.clone())
       .arg(lockfile_arg.clone())
+      .arg(dev_deps.clone())
     )
     .get_matches();
 
@@ -100,11 +103,12 @@ fn handle_pants_sub_command(pants_matches: &ArgMatches) {
         check_pants(pants_style);
     }
 
-    let lockfile_path = pants_matches.value_of("lockfile").unwrap();
+    let toml_file_path = pants_matches.value_of("tomlfile").unwrap();
     let verbose_output = pants_matches.is_present("loud");
     let enable_color: bool = !pants_matches.is_present("no-color");
+    let dev: bool = pants_matches.is_present("dev");
 
-    audit(lockfile_path.to_string(), verbose_output, enable_color);
+    audit(toml_file_path.to_string(), verbose_output, enable_color, dev);
 }
 
 fn get_log_level_filter(matches: &ArgMatches) -> LevelFilter {
@@ -163,25 +167,9 @@ fn get_api_key() -> Option<String> {
     };
 }
 
-fn get_packages(lockfile_path: String) -> Result<Vec<Package>, Error> {
-    debug!("Attempting to get package list from {}", lockfile_path);
-
-    match Lockfile::load(lockfile_path) {
-        Ok(f) => {
-            debug!("Got packages from lockfile, cloning and moving forward");
-            let packages: Vec<Package> = f.packages.clone();
-
-            return Ok(packages);
-        }
-        Err(e) => {
-            error!("Encountered error in get_packages, attempting to load Lockfile");
-            return Err(e);
-        }
-    };
-}
-
-fn audit(lockfile_path: String, verbose_output: bool, enable_color: bool) -> ! {
-    let packages = match get_packages(lockfile_path) {
+fn audit(toml_file_path: String, verbose_output: bool, enable_color: bool, include_dev: bool) -> ! {
+    let mut parser = ParseCargoToml::new(toml_file_path.clone(), include_dev);
+    let packages = match parser.get_packages() {
         Ok(packages) => packages,
         Err(e) => {
             println!("{}", e);

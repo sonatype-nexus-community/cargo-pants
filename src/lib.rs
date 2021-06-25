@@ -27,13 +27,13 @@ pub mod coordinate;
 pub mod cyclonedx;
 pub mod error;
 pub mod iq;
-pub mod lockfile;
 pub mod package;
+pub mod parse;
 pub mod vulnerability;
 
 pub use crate::{
-    client::*, coordinate::*, cyclonedx::CycloneDXGenerator, error::*, iq::IQClient, lockfile::*,
-    package::*, vulnerability::*,
+    client::*, coordinate::*, cyclonedx::CycloneDXGenerator, error::*, iq::IQClient, package::*,
+    parse::*, vulnerability::*,
 };
 
 // Global Singletons are bad kids. Don't use them (unless you need the terminal width everywhere).
