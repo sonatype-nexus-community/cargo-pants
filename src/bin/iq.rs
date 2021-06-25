@@ -16,7 +16,6 @@ extern crate clap;
 
 use cargo_pants::iq::OpenPolicyViolations;
 use cargo_pants::package::Package;
-use cargo_pants::parse::Parser;
 use cargo_pants::CycloneDXGenerator;
 use cargo_pants::IQClient;
 use cargo_pants::ParseCargoToml;
@@ -70,6 +69,10 @@ fn main() {
     .multiple(true)
     .help("Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v");
 
+    let dev_deps = Arg::with_name("dev")
+    .long("dev")
+    .help("A flag to include dev dependencies");
+
     let matches = App::new("Cargo Pants")
     .version(crate_version!())
     .bin_name("cargo")
@@ -114,6 +117,7 @@ fn main() {
         .help("Specify Nexus IQ attempts in seconds"))
       .arg(logger_arg.clone())
       .arg(lockfile_arg.clone())
+      .arg(dev_deps.clone())
     )
     .get_matches();
 
@@ -138,11 +142,9 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
     package_bar.set_message(format!("{}{}", LOOKING_GLASS, "Getting package list"));
 
     let toml_file_path = iq_sub_command.value_of("tomlfile").unwrap();
+    let dev: bool = iq_sub_command.is_present("dev");
 
-    let parser = ParseCargoToml {
-        toml_file_path: toml_file_path.to_string(),
-        include_dev: true,
-    };
+    let mut parser = ParseCargoToml::new(toml_file_path.to_string(), dev);
     match parser.get_packages() {
         Ok(packages) => {
             package_bar.finish_with_message(format!("{}{}", CRAB, "Obtained package list"));
