@@ -70,8 +70,8 @@ fn main() {
     .help("Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v");
 
     let dev_deps = Arg::with_name("dev")
-    .long("dev")
-    .help("A flag to include dev dependencies");
+        .long("dev")
+        .help("A flag to include dev dependencies");
 
     let matches = App::new("Cargo Pants")
     .version(crate_version!())
