@@ -30,7 +30,8 @@ use log4rs::Config;
 use std::io::{stdout, Write};
 use std::{env, io, process};
 
-const CARGO_DEFAULT_TOMLFILE: &str = "Cargo.toml";
+#[path = "../common.rs"]
+mod common;
 
 macro_rules! ternary {
     ($c:expr, $v:expr, $v1:expr) => {
@@ -43,22 +44,6 @@ macro_rules! ternary {
 }
 
 fn main() {
-    let lockfile_arg = Arg::with_name("tomlfile")
-        .long("tomlfile")
-        .takes_value(true)
-        .help("The path to your Cargo.toml file")
-        .default_value(CARGO_DEFAULT_TOMLFILE);
-
-    let dev_deps = Arg::with_name("dev")
-        .long("dev")
-        .help("A flag to include dev dependencies");
-
-    let logger_arg = Arg::with_name("verbose")
-    .short("v")
-    .takes_value(false)
-    .multiple(true)
-    .help("Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v");
-
     let matches = App::new("Cargo Pants")
     .version(crate_version!())
     .bin_name("cargo")
@@ -80,9 +65,9 @@ fn main() {
         .long("no-color")
         .takes_value(false)
         .help("Disable color output"))
-      .arg(logger_arg.clone())
-      .arg(lockfile_arg.clone())
-      .arg(dev_deps.clone())
+      .arg(common::get_verbose_arg().clone())
+      .arg(common::get_lockfile_arg().clone())
+      .arg(common::get_dev_arg().clone())
     )
     .get_matches();
 
@@ -94,7 +79,7 @@ fn main() {
 
             handle_pants_sub_command(sub_m);
         }
-        _ => print_no_command_found(),
+        _ => common::print_no_command_found(),
     }
 }
 
@@ -156,11 +141,6 @@ fn construct_logger(iq: bool, log_level_filter: LevelFilter) {
     println!("");
 }
 
-fn print_no_command_found() {
-    println!("Error, this tool is designed to be executed from cargo itself.");
-    println!("Therefore at least the command line parameter 'pants' must be provided.");
-}
-
 fn get_api_key() -> Option<String> {
     match env::var("OSS_INDEX_API_KEY") {
         Ok(val) => return Some(val),
@@ -203,7 +183,7 @@ fn audit(toml_file_path: String, verbose_output: bool, enable_color: bool, inclu
 
     let mut stdout = stdout();
     if verbose_output {
-        banner();
+        common::banner();
 
         write_package_output(
             &mut stdout,
@@ -238,11 +218,6 @@ fn audit(toml_file_path: String, verbose_output: bool, enable_color: bool, inclu
         0 => process::exit(0),
         _ => process::exit(3),
     }
-}
-
-fn banner() {
-    println!("{}", std::include_str!("banner.txt"));
-    println!("{} version: {}", crate_name!(), crate_version!());
 }
 
 fn write_package_output(

@@ -37,7 +37,8 @@ use log4rs::encode::json::JsonEncoder;
 use log4rs::Config;
 use std::{env, process};
 
-const CARGO_DEFAULT_TOML: &str = "Cargo.toml";
+#[path = "../common.rs"]
+mod common;
 
 static LOOKING_GLASS: Emoji<'_, '_> = Emoji("🔍 ", "");
 static SPARKIES: Emoji<'_, '_> = Emoji("✨ ", "");
@@ -57,22 +58,6 @@ macro_rules! ternary {
 }
 
 fn main() {
-    let lockfile_arg = Arg::with_name("tomlfile")
-        .long("tomlfile")
-        .takes_value(true)
-        .help("The path to your Cargo.toml file")
-        .default_value(CARGO_DEFAULT_TOML);
-
-    let logger_arg = Arg::with_name("verbose")
-    .short("v")
-    .takes_value(false)
-    .multiple(true)
-    .help("Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v");
-
-    let dev_deps = Arg::with_name("dev")
-        .long("dev")
-        .help("A flag to include dev dependencies");
-
     let matches = App::new("Cargo Pants")
     .version(crate_version!())
     .bin_name("cargo")
@@ -115,9 +100,9 @@ fn main() {
         .takes_value(true)
         .default_value("60")
         .help("Specify Nexus IQ attempts in seconds"))
-      .arg(logger_arg.clone())
-      .arg(lockfile_arg.clone())
-      .arg(dev_deps.clone())
+    .arg(common::get_verbose_arg().clone())
+    .arg(common::get_lockfile_arg().clone())
+    .arg(common::get_dev_arg().clone())
     )
     .get_matches();
 
@@ -125,13 +110,13 @@ fn main() {
         ("iq", Some(sub_m)) => {
             let log_level = get_log_level_filter(sub_m);
 
-            banner();
+            common::banner();
 
             construct_logger(true, log_level);
 
             handle_iq_sub_command(sub_m);
         }
-        _ => print_no_command_found(),
+        _ => common::print_no_command_found(),
     }
 }
 
@@ -340,14 +325,4 @@ fn generate_summary_table(policy_violations: OpenPolicyViolations) -> TableStruc
         "Total".cell().bold(true),
     ])
     .bold(true);
-}
-
-fn print_no_command_found() {
-    println!("Error, this tool is designed to be executed from cargo itself.");
-    println!("Therefore at least the command line parameter 'pants' must be provided.");
-}
-
-fn banner() {
-    println!("{}", std::include_str!("banner.txt"));
-    println!("{} version: {}", crate_name!(), crate_version!());
 }
