@@ -18,30 +18,14 @@ use cargo_pants::ParseCargoToml;
 use cargo_pants::{client::OSSIndexClient, coordinate::Coordinate};
 use clap::ArgMatches;
 use clap::{App, Arg, SubCommand};
-use dirs::home_dir;
 use log::info;
-use log::LevelFilter;
-use log4rs::append::file::FileAppender;
-use log4rs::config::Appender;
-use log4rs::config::Logger;
-use log4rs::config::Root;
-use log4rs::encode::json::JsonEncoder;
-use log4rs::Config;
+
 use std::io::{stdout, Write};
 use std::{env, io, process};
 
 #[path = "../common.rs"]
+#[macro_use]
 mod common;
-
-macro_rules! ternary {
-    ($c:expr, $v:expr, $v1:expr) => {
-        if $c {
-            $v
-        } else {
-            $v1
-        }
-    };
-}
 
 fn main() {
     let matches = App::new("Cargo Pants")
@@ -73,9 +57,9 @@ fn main() {
 
     match matches.subcommand() {
         ("pants", Some(sub_m)) => {
-            let log_level = get_log_level_filter(sub_m);
+            let log_level = common::get_log_level_filter(sub_m);
 
-            construct_logger(false, log_level);
+            common::construct_logger(false, log_level);
 
             handle_pants_sub_command(sub_m);
         }
@@ -99,46 +83,6 @@ fn handle_pants_sub_command(pants_matches: &ArgMatches) {
         enable_color,
         dev,
     );
-}
-
-fn get_log_level_filter(matches: &ArgMatches) -> LevelFilter {
-    match matches.occurrences_of("verbose") {
-        1 => return LevelFilter::Warn,
-        2 => return LevelFilter::Info,
-        3 => return LevelFilter::Debug,
-        4 => return LevelFilter::Trace,
-        _ => return LevelFilter::Error,
-    };
-}
-
-fn construct_logger(iq: bool, log_level_filter: LevelFilter) {
-    let home = home_dir().unwrap();
-
-    let log_location_base_dir = ternary!(iq, home.join(".iqserver"), home.join(".ossindex"));
-    let full_log_location = log_location_base_dir.join("cargo-pants.combined.log");
-
-    let file = FileAppender::builder()
-        .encoder(Box::new(JsonEncoder::new()))
-        .build(full_log_location.clone())
-        .unwrap();
-
-    let config = Config::builder()
-        .appender(Appender::builder().build("file", Box::new(file)))
-        .logger(
-            Logger::builder()
-                .appender("file")
-                .additive(true)
-                .build("app::file", log_level_filter),
-        )
-        .build(Root::builder().appender("file").build(log_level_filter))
-        .unwrap();
-
-    let _handle = log4rs::init_config(config).unwrap();
-
-    println!("");
-    println!("Log Level set to: {}", log_level_filter);
-    println!("Logging to: {:?}", full_log_location.clone());
-    println!("");
 }
 
 fn get_api_key() -> Option<String> {

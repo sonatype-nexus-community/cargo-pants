@@ -25,16 +25,8 @@ use cli_table::TableStruct;
 use cli_table::{format::Border, format::Justify, print_stdout, Cell, Style, Table};
 use console::StyledObject;
 use console::{style, Emoji};
-use dirs::home_dir;
 use indicatif::{ProgressBar, ProgressStyle};
 use log::debug;
-use log::LevelFilter;
-use log4rs::append::file::FileAppender;
-use log4rs::config::Appender;
-use log4rs::config::Logger;
-use log4rs::config::Root;
-use log4rs::encode::json::JsonEncoder;
-use log4rs::Config;
 use std::{env, process};
 
 #[path = "../common.rs"]
@@ -46,16 +38,6 @@ static CROSS_MARK: Emoji<'_, '_> = Emoji("❌ ", "");
 static CRAB: Emoji<'_, '_> = Emoji("🦀 ", "");
 static SHIP: Emoji<'_, '_> = Emoji("🚢 ", "");
 static CONSTRUCTION: Emoji<'_, '_> = Emoji("🚧 ", "");
-
-macro_rules! ternary {
-    ($c:expr, $v:expr, $v1:expr) => {
-        if $c {
-            $v
-        } else {
-            $v1
-        }
-    };
-}
 
 fn main() {
     let matches = App::new("Cargo Pants")
@@ -108,11 +90,11 @@ fn main() {
 
     match matches.subcommand() {
         ("iq", Some(sub_m)) => {
-            let log_level = get_log_level_filter(sub_m);
+            let log_level = common::get_log_level_filter(sub_m);
 
             common::banner();
 
-            construct_logger(true, log_level);
+            common::construct_logger(true, log_level);
 
             handle_iq_sub_command(sub_m);
         }
@@ -242,46 +224,6 @@ fn obtain_iq_client(iq_sub_command: &ArgMatches) -> IQClient {
         .unwrap();
 
     return IQClient::new(server.clone(), user, token, stage, application, attempts);
-}
-
-fn get_log_level_filter(matches: &ArgMatches) -> LevelFilter {
-    match matches.occurrences_of("verbose") {
-        1 => return LevelFilter::Warn,
-        2 => return LevelFilter::Info,
-        3 => return LevelFilter::Debug,
-        4 => return LevelFilter::Trace,
-        _ => return LevelFilter::Error,
-    };
-}
-
-fn construct_logger(iq: bool, log_level_filter: LevelFilter) {
-    let home = home_dir().unwrap();
-
-    let log_location_base_dir = ternary!(iq, home.join(".iqserver"), home.join(".ossindex"));
-    let full_log_location = log_location_base_dir.join("cargo-pants.combined.log");
-
-    let file = FileAppender::builder()
-        .encoder(Box::new(JsonEncoder::new()))
-        .build(full_log_location.clone())
-        .unwrap();
-
-    let config = Config::builder()
-        .appender(Appender::builder().build("file", Box::new(file)))
-        .logger(
-            Logger::builder()
-                .appender("file")
-                .additive(true)
-                .build("app::file", log_level_filter),
-        )
-        .build(Root::builder().appender("file").build(log_level_filter))
-        .unwrap();
-
-    let _handle = log4rs::init_config(config).unwrap();
-
-    println!("");
-    println!("Log Level set to: {}", log_level_filter);
-    println!("Logging to: {:?}", full_log_location.clone());
-    println!("");
 }
 
 fn print_iq_summary(
