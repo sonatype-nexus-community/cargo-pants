@@ -77,7 +77,7 @@ impl ParseCargoToml {
                 version: p.version.clone(),
             });
 
-            for resolved_dep in resolve.nodes.iter().find(|n| n.id == pkg_id) {
+            if let Some(resolved_dep) = resolve.nodes.iter().find(|n| n.id == pkg_id) {
                 for dep in &resolved_dep.deps {
                     let mut into_iter = dep.dep_kinds.clone().into_iter();
                     let abby_normal: bool = match into_iter.find(|dk| dk.kind != Normal) {
