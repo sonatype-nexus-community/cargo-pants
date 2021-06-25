@@ -75,6 +75,7 @@ impl ParseCargoToml {
             self.packages.push(crate::package::Package {
                 name: p.name.clone(),
                 version: p.version.clone(),
+                license: p.license.clone(),
             });
 
             if let Some(resolved_dep) = resolve.nodes.iter().find(|n| n.id == pkg_id) {

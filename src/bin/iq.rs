@@ -26,7 +26,7 @@ use cli_table::{format::Border, format::Justify, print_stdout, Cell, Style, Tabl
 use console::StyledObject;
 use console::{style, Emoji};
 use indicatif::{ProgressBar, ProgressStyle};
-use log::debug;
+use log::{debug, trace};
 use std::{env, process};
 
 #[path = "../common.rs"]
@@ -130,6 +130,7 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
                 SPARKIES, "Generating SBOM representation of project"
             ));
             let sbom = handle_packages(packages);
+            trace!("{}", sbom);
             sbom_bar.finish_with_message(format!("{}{}", CRAB, "SBOM generated"));
 
             let iq_bar = ProgressBar::new_spinner();
@@ -213,10 +214,9 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
 }
 
 fn handle_packages(packages: Vec<Package>) -> String {
-    let purls: Vec<String> = packages.iter().map(|pkg| pkg.as_purl()).collect();
     let sbom_generator = CycloneDXGenerator {};
 
-    return sbom_generator.generate_sbom_from_purls(purls);
+    return sbom_generator.generate_sbom_from_purls(packages);
 }
 
 fn obtain_iq_client(iq_sub_command: &ArgMatches) -> IQClient {

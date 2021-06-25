@@ -25,13 +25,14 @@ pub struct Package {
 
     /// Crate version (using `semver`)
     pub version: Version,
-    // /// Source of the crate
-    // #[serde(default)]
-    // pub source: String,
 
-    // /// Dependencies of this crate
-    // #[serde(default)]
-    // pub dependencies: Vec<String>,
+    pub license: Option<String>, // /// Source of the crate
+                                 // #[serde(default)]
+                                 // pub source: String,
+
+                                 // /// Dependencies of this crate
+                                 // #[serde(default)]
+                                 // pub dependencies: Vec<String>
 }
 
 impl Package {
