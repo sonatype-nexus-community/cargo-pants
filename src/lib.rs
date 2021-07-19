@@ -44,5 +44,12 @@ lazy_static! {
 }
 
 fn calculate_term_width() -> u16 {
-    termsize::get().unwrap_or(DEFAULT_TERM_SIZE).cols
+    match termsize::get() {
+        Some(val) => {
+            return val.cols;
+        }
+        None => {
+            return DEFAULT_TERM_SIZE.cols;
+        }
+    }
 }
