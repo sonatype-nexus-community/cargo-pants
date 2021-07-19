@@ -33,6 +33,8 @@ pub struct Package {
                                  // /// Dependencies of this crate
                                  // #[serde(default)]
                                  // pub dependencies: Vec<String>
+
+    pub package_id: cargo_metadata::PackageId,
 }
 
 impl Package {

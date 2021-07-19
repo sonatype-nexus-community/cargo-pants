@@ -58,6 +58,7 @@ pub struct StatusURLResult {
     pub report_data_url: String,
     pub embeddable_report_html_url: String,
     pub is_error: bool,
+    pub error_message: Option<String>,
     pub components_affected: ComponentsAffected,
     pub open_policy_violations: OpenPolicyViolations,
     pub grandfathered_policy_violations: i64,

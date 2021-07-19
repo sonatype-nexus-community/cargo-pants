@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashSet;
 use crate::error::Error;
 use cargo_metadata::DependencyKind::Normal;
 use cargo_metadata::Metadata;
@@ -21,13 +22,48 @@ use cargo_metadata::{CargoOpt, MetadataCommand};
 use log::{debug, trace};
 use std::collections::{hash_map::Entry, HashMap, VecDeque};
 use std::ops::Index;
+use petgraph::graph::Graph;
+use petgraph::graph::NodeIndex;
+use petgraph::EdgeDirection;
+use petgraph::visit::EdgeRef;
+
+#[derive(Clone, Copy)]
+enum Prefix {
+    None,
+    Indent,
+    Depth,
+}
+
+struct Symbols {
+    down: &'static str,
+    tee: &'static str,
+    ell: &'static str,
+    right: &'static str,
+}
+
+static UTF8_SYMBOLS: Symbols = Symbols {
+    down: "│",
+    tee: "├",
+    ell: "└",
+    right: "─",
+};
+
+static ASCII_SYMBOLS: Symbols = Symbols {
+    down: "|",
+    tee: "|",
+    ell: "`",
+    right: "-",
+};
 
 pub struct ParseCargoToml {
     pub toml_file_path: String,
     pub include_dev: bool,
     deps_add_queue: VecDeque<PackageId>,
     packages: Vec<crate::package::Package>,
+    nodes: HashMap<PackageId, NodeIndex>,
+    purl_map: HashMap<String, PackageId>,
     existing_packages: HashMap<PackageId, bool>,
+    graph: Graph<crate::package::Package, cargo_metadata::DependencyKind>
 }
 
 impl ParseCargoToml {
@@ -37,7 +73,10 @@ impl ParseCargoToml {
             include_dev: include_dev,
             deps_add_queue: VecDeque::new(),
             packages: Vec::new(),
+            nodes: HashMap::new(),
+            purl_map: HashMap::new(),
             existing_packages: HashMap::new(),
+            graph: Graph::new()
         };
     }
 
@@ -56,6 +95,14 @@ impl ParseCargoToml {
 
         let resolve = metadata.clone().resolve.unwrap();
 
+        for package in metadata.clone().packages {
+            let id = package.id.clone();
+            let pkg = crate::package::Package{name: package.name, version: package.version, license: package.license, package_id: id.clone()};
+            let index = self.graph.add_node(pkg.clone());
+            self.nodes.insert(id.clone(), index);
+            self.purl_map.insert(pkg.as_purl(), id);
+        }
+
         for pkg_id in &workspace_members {
             let _pkg: &cargo_metadata::Package = metadata.clone().index(pkg_id);
             self.deps_add_queue.push_back(pkg_id.clone());
@@ -69,6 +116,18 @@ impl ParseCargoToml {
         };
     }
 
+    pub fn print_the_graph(&self, purl: String) -> Result<(), Error> {
+        let symbols = &UTF8_SYMBOLS;
+    
+        let prefix = Prefix::Indent;
+
+        let pkg_id = self.purl_map.get(&purl).unwrap();
+
+        print_tree(&self.graph, &self.nodes, pkg_id, symbols, prefix);
+
+        Ok(())
+    }
+
     fn parse_dependencies(&mut self, metadata: Metadata, resolve: Resolve) -> Result<(), Error> {
         while let Some(pkg_id) = self.deps_add_queue.pop_front() {
             let p: &cargo_metadata::Package = metadata.index(&pkg_id);
@@ -76,9 +135,12 @@ impl ParseCargoToml {
                 name: p.name.clone(),
                 version: p.version.clone(),
                 license: p.license.clone(),
+                package_id: pkg_id.clone()
             });
 
             if let Some(resolved_dep) = resolve.nodes.iter().find(|n| n.id == pkg_id) {
+                let from = self.nodes[&resolved_dep.id];
+
                 for dep in &resolved_dep.deps {
                     let mut into_iter = dep.dep_kinds.clone().into_iter();
                     let abby_normal: bool = match into_iter.find(|dk| dk.kind != Normal) {
@@ -93,6 +155,13 @@ impl ParseCargoToml {
                         );
                         continue;
                     }
+
+                    let to = self.nodes[&dep.pkg];
+
+                    for kind in dep.clone().dep_kinds {
+                        self.graph.add_edge(from, to, kind.kind);
+                    }
+
                     match self.existing_packages.entry(dep.pkg.clone()) {
                         Entry::Occupied(o) => {
                             trace!("Entry exists, skipping {:?}", o);
@@ -107,5 +176,101 @@ impl ParseCargoToml {
         }
 
         Ok(())
+    }
+}
+
+fn print_tree<'a>(
+    graph: &'a Graph<crate::package::Package, cargo_metadata::DependencyKind>,
+    nodes: &'a HashMap<PackageId, NodeIndex>,
+    pkg: &'a PackageId,
+    symbols: &Symbols,
+    prefix: Prefix
+) {
+    let mut visited_deps = HashSet::new();
+    let mut levels_continue = vec![];
+
+    print_package(
+        graph,
+        nodes,
+        pkg,
+        symbols,
+        prefix,
+        &mut visited_deps,
+        &mut levels_continue,
+    );
+}
+
+fn print_package<'a>(
+    graph: &'a Graph<crate::package::Package, cargo_metadata::DependencyKind>,
+    nodes: &'a HashMap<PackageId, NodeIndex>,
+    pkg: &'a PackageId,
+    symbols: &Symbols,
+    prefix: Prefix,
+    visited_deps: &mut HashSet<&'a PackageId>,
+    levels_continue: &mut Vec<bool>,
+) {
+    visited_deps.insert(&pkg);
+
+    match prefix {
+        Prefix::Depth => print!("{}", levels_continue.len()),
+        Prefix::Indent => {
+            if let Some((last_continues, rest)) = levels_continue.split_last() {
+                for continues in rest {
+                    let c = if *continues { symbols.down } else { " " };
+                    print!("{}   ", c);
+                }
+
+                let c = if *last_continues {
+                    symbols.tee
+                } else {
+                    symbols.ell
+                };
+                print!("{0}{1}{1} ", c, symbols.right);
+            }
+        }
+        Prefix::None => {}
+    }
+
+    // let star = if new { "" } else { " (*)" };
+    println!("{}", pkg);
+    print_dependencies(graph, nodes, pkg, symbols, prefix, visited_deps, levels_continue);
+}
+
+fn print_dependencies<'a>(
+    graph: &'a Graph<crate::package::Package, cargo_metadata::DependencyKind>,
+    nodes: &'a HashMap<PackageId, NodeIndex>,
+    pkg: &'a PackageId,
+    symbols: &Symbols,
+    prefix: Prefix,
+    visited_deps: &mut HashSet<&'a PackageId>,
+    levels_continue: &mut Vec<bool>,
+) {
+    let mut deps = vec![];
+    let idx = nodes[&pkg];
+    for edge in graph.edges_directed(idx, EdgeDirection::Incoming) {
+        let dep = &graph[edge.source()];
+        deps.push(dep);
+    }
+
+    if deps.is_empty() {
+        return;
+    }
+
+    deps.sort_by_key(|p| &p.package_id);
+
+    let mut it = deps.iter().peekable();
+    while let Some(dependency) = it.next() {
+        levels_continue.push(it.peek().is_some());
+        
+        print_package(
+            graph,
+            nodes,
+            &dependency.package_id,
+            symbols,
+            prefix,
+            visited_deps,
+            levels_continue,
+        );
+        levels_continue.pop();
     }
 }

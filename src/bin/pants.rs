@@ -138,11 +138,10 @@ fn audit(toml_file_path: String, verbose_output: bool, enable_color: bool, inclu
             false,
             enable_color,
             None,
+            parser,
         )
         .expect("Error writing non-vulnerable packages to output");
-    }
-
-    if vulnerable_package_count > 0 {
+    } else if !verbose_output && vulnerable_package_count > 0 {
         write_package_output(
             &mut stdout,
             &coordinates,
@@ -150,6 +149,7 @@ fn audit(toml_file_path: String, verbose_output: bool, enable_color: bool, inclu
             true,
             enable_color,
             None,
+            parser,
         )
         .expect("Error writing vulnerable packages to output");
     }
@@ -173,6 +173,7 @@ fn write_package_output(
     vulnerable: bool,
     enable_color: bool,
     width_override: Option<u16>,
+    parser: ParseCargoToml
 ) -> io::Result<()> {
     use ansi_term::{Color, Style};
 
@@ -229,6 +230,10 @@ fn write_package_output(
                     writeln!(output, "\n")?;
                 }
             }
+
+            println!("Inverse Dependency graph");
+            assert!(parser.print_the_graph(coordinate.purl.clone()).is_ok());
+            println!("");
         }
     }
     Ok(())

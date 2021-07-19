@@ -86,14 +86,14 @@ fn generate_1_3_sbom_from_purls(purls: Vec<Package>) -> String {
                     .write_event(Event::Start(BytesStart::borrowed_name(b"license")))
                     .is_ok());
                 assert!(writer
-                    .write_event(Event::Start(BytesStart::borrowed_name(b"id")))
+                    .write_event(Event::Start(BytesStart::borrowed_name(b"name")))
                     .is_ok());
 
                 let license_value = BytesText::from_plain_str(&license);
                 assert!(writer.write_event(Event::Text(license_value)).is_ok());
 
                 assert!(writer
-                    .write_event(Event::End(BytesEnd::borrowed(b"id")))
+                    .write_event(Event::End(BytesEnd::borrowed(b"name")))
                     .is_ok());
 
                 assert!(writer
@@ -184,7 +184,7 @@ mod tests {
 
         let sbom = cyclonedx.generate_sbom_from_purls(packages);
 
-        let expected = "<bom xmlns=\"http://cyclonedx.org/schema/bom/1.3\" version=\"1\"><components><component type=\"library\" bom-ref=\"pkg:cargo/test@1.0.0\"><name>test</name><version>1.0.0</version><purl>pkg:cargo/test@1.0.0</purl></component><component type=\"library\" bom-ref=\"pkg:cargo/test@1.0.1\"><name>test</name><version>1.0.1</version><purl>pkg:cargo/test@1.0.1</purl></component><component type=\"library\" bom-ref=\"pkg:cargo/test@1.0.2\"><name>test</name><version>1.0.2</version><licenses><license><id>Apache-2.0</id></license></licenses><purl>pkg:cargo/test@1.0.2</purl></component></components></bom>";
+        let expected = "<bom xmlns=\"http://cyclonedx.org/schema/bom/1.3\" version=\"1\"><components><component type=\"library\" bom-ref=\"pkg:cargo/test@1.0.0\"><name>test</name><version>1.0.0</version><purl>pkg:cargo/test@1.0.0</purl></component><component type=\"library\" bom-ref=\"pkg:cargo/test@1.0.1\"><name>test</name><version>1.0.1</version><purl>pkg:cargo/test@1.0.1</purl></component><component type=\"library\" bom-ref=\"pkg:cargo/test@1.0.2\"><name>test</name><version>1.0.2</version><licenses><license><name>Apache-2.0</name></license></licenses><purl>pkg:cargo/test@1.0.2</purl></component></components></bom>";
 
         assert_eq!(sbom, expected);
     }

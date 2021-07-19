@@ -26,7 +26,7 @@ use cli_table::{format::Border, format::Justify, print_stdout, Cell, Style, Tabl
 use console::StyledObject;
 use console::{style, Emoji};
 use indicatif::{ProgressBar, ProgressStyle};
-use log::{debug, trace};
+use log::{debug, trace, error};
 use std::{env, process};
 
 #[path = "../common.rs"]
@@ -142,6 +142,12 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
             let iq = obtain_iq_client(iq_sub_command);
             match iq.audit_with_iq_server(sbom) {
                 Ok(res) => {
+                    trace!("Response recieved: {:#?}", res.url_results);
+
+                    if res.url_results.is_error {
+                        panic!(res.url_results.error_message.unwrap());
+                    }
+
                     iq_bar.finish_with_message(format!("{}{}", CRAB, "Nexus IQ Results obtained"));
                     println!("");
 
@@ -197,6 +203,8 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
                         "{}{}",
                         CROSS_MARK, "Error generating Nexus IQ Server results"
                     ));
+                    error!("{}", e);
+                    
                     println!("{}", e);
 
                     process::exit(1);
