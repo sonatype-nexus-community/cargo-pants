@@ -38,12 +38,8 @@ pub use crate::{
 
 // Global Singletons are bad kids. Don't use them (unless you need the terminal width everywhere).
 const DEFAULT_TERM_SIZE: termsize::Size = termsize::Size { cols: 80, rows: 40 };
-use lazy_static::lazy_static;
-lazy_static! {
-    pub static ref TERM_WIDTH: u16 = calculate_term_width();
-}
 
-fn calculate_term_width() -> u16 {
+pub fn calculate_term_width() -> u16 {
     match termsize::get() {
         Some(val) => {
             return val.cols;
