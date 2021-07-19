@@ -22,7 +22,7 @@ extern crate env_logger;
 extern crate log;
 extern crate serde_json;
 
-use terminal_size::{Width, Height, terminal_size};
+use terminal_size::{terminal_size, Height, Width};
 
 pub mod client;
 pub mod coordinate;
@@ -42,7 +42,7 @@ pub fn calculate_term_width() -> u16 {
     match terminal_size() {
         Some((Width(w), Height(_h))) => {
             return w;
-        },
+        }
         None => {
             return 80;
         }
