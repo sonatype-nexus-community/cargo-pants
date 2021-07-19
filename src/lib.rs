@@ -22,6 +22,8 @@ extern crate env_logger;
 extern crate log;
 extern crate serde_json;
 
+use terminal_size::{Width, Height, terminal_size};
+
 pub mod client;
 pub mod coordinate;
 pub mod cyclonedx;
@@ -36,16 +38,13 @@ pub use crate::{
     package::*, vulnerability::*,
 };
 
-// Global Singletons are bad kids. Don't use them (unless you need the terminal width everywhere).
-const DEFAULT_TERM_SIZE: termsize::Size = termsize::Size { cols: 80, rows: 40 };
-
 pub fn calculate_term_width() -> u16 {
-    match termsize::get() {
-        Some(val) => {
-            return val.cols;
-        }
+    match terminal_size() {
+        Some((Width(w), Height(_h))) => {
+            return w;
+        },
         None => {
-            return DEFAULT_TERM_SIZE.cols;
+            return 80;
         }
     }
 }
