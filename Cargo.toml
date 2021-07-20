@@ -22,7 +22,6 @@ atty = "0.2"
 chrono = { version = "0.4", optional = true }
 clap = "2.32.0"
 env_logger = "0.6.1"
-futures = "0.1.25"
 http = "0.2.4"
 log = "0.4.0"
 packageurl = "0.2.0"
