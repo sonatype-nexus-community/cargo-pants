@@ -80,10 +80,10 @@ pub struct TestParseCargoToml {
 
 impl ParseToml for TestParseCargoToml {
     fn new(_: std::string::String, _: bool) -> Self {
-        return Self{
+        return Self {
             include_dev: false,
-            toml_file_path: "".to_string()
-        }
+            toml_file_path: "".to_string(),
+        };
     }
 
     fn get_packages(&mut self) -> std::result::Result<Vec<crate::package::Package>, Error> {

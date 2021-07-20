@@ -14,12 +14,12 @@
 #[macro_use]
 extern crate clap;
 
-use cargo_pants::ParseToml;
 use cargo_pants::iq::OpenPolicyViolations;
 use cargo_pants::package::Package;
 use cargo_pants::CycloneDXGenerator;
 use cargo_pants::IQClient;
 use cargo_pants::ParseCargoToml;
+use cargo_pants::ParseToml;
 use clap::ArgMatches;
 use clap::{App, Arg, SubCommand};
 use cli_table::TableStruct;
