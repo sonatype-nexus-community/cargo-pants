@@ -27,13 +27,12 @@ pub struct Package {
     pub version: Version,
 
     pub license: Option<String>, // /// Source of the crate
-                                 // #[serde(default)]
-                                 // pub source: String,
+    // #[serde(default)]
+    // pub source: String,
 
-                                 // /// Dependencies of this crate
-                                 // #[serde(default)]
-                                 // pub dependencies: Vec<String>
-
+    // /// Dependencies of this crate
+    // #[serde(default)]
+    // pub dependencies: Vec<String>
     pub package_id: cargo_metadata::PackageId,
 }
 

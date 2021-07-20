@@ -173,7 +173,7 @@ fn write_package_output(
     vulnerable: bool,
     enable_color: bool,
     width_override: Option<u16>,
-    parser: ParseCargoToml
+    parser: ParseCargoToml,
 ) -> io::Result<()> {
     use ansi_term::{Color, Style};
 

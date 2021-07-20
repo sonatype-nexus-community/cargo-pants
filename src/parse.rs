@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashSet;
 use crate::error::Error;
 use cargo_metadata::DependencyKind::Normal;
 use cargo_metadata::Metadata;
@@ -20,12 +19,13 @@ use cargo_metadata::PackageId;
 use cargo_metadata::Resolve;
 use cargo_metadata::{CargoOpt, MetadataCommand};
 use log::{debug, trace};
-use std::collections::{hash_map::Entry, HashMap, VecDeque};
-use std::ops::Index;
 use petgraph::graph::Graph;
 use petgraph::graph::NodeIndex;
-use petgraph::EdgeDirection;
 use petgraph::visit::EdgeRef;
+use petgraph::EdgeDirection;
+use std::collections::HashSet;
+use std::collections::{hash_map::Entry, HashMap, VecDeque};
+use std::ops::Index;
 
 #[derive(Clone, Copy)]
 enum Prefix {
@@ -63,7 +63,7 @@ pub struct ParseCargoToml {
     nodes: HashMap<PackageId, NodeIndex>,
     purl_map: HashMap<String, PackageId>,
     existing_packages: HashMap<PackageId, bool>,
-    graph: Graph<crate::package::Package, cargo_metadata::DependencyKind>
+    graph: Graph<crate::package::Package, cargo_metadata::DependencyKind>,
 }
 
 impl ParseCargoToml {
@@ -76,7 +76,7 @@ impl ParseCargoToml {
             nodes: HashMap::new(),
             purl_map: HashMap::new(),
             existing_packages: HashMap::new(),
-            graph: Graph::new()
+            graph: Graph::new(),
         };
     }
 
@@ -97,7 +97,12 @@ impl ParseCargoToml {
 
         for package in metadata.clone().packages {
             let id = package.id.clone();
-            let pkg = crate::package::Package{name: package.name, version: package.version, license: package.license, package_id: id.clone()};
+            let pkg = crate::package::Package {
+                name: package.name,
+                version: package.version,
+                license: package.license,
+                package_id: id.clone(),
+            };
             let index = self.graph.add_node(pkg.clone());
             self.nodes.insert(id.clone(), index);
             self.purl_map.insert(pkg.as_purl(), id);
@@ -118,7 +123,7 @@ impl ParseCargoToml {
 
     pub fn print_the_graph(&self, purl: String) -> Result<(), Error> {
         let symbols = &UTF8_SYMBOLS;
-    
+
         let prefix = Prefix::Indent;
 
         let pkg_id = self.purl_map.get(&purl).unwrap();
@@ -135,7 +140,7 @@ impl ParseCargoToml {
                 name: p.name.clone(),
                 version: p.version.clone(),
                 license: p.license.clone(),
-                package_id: pkg_id.clone()
+                package_id: pkg_id.clone(),
             });
 
             if let Some(resolved_dep) = resolve.nodes.iter().find(|n| n.id == pkg_id) {
@@ -184,7 +189,7 @@ fn print_tree<'a>(
     nodes: &'a HashMap<PackageId, NodeIndex>,
     pkg: &'a PackageId,
     symbols: &Symbols,
-    prefix: Prefix
+    prefix: Prefix,
 ) {
     let mut visited_deps = HashSet::new();
     let mut levels_continue = vec![];
@@ -233,7 +238,15 @@ fn print_package<'a>(
 
     // let star = if new { "" } else { " (*)" };
     println!("{}", pkg);
-    print_dependencies(graph, nodes, pkg, symbols, prefix, visited_deps, levels_continue);
+    print_dependencies(
+        graph,
+        nodes,
+        pkg,
+        symbols,
+        prefix,
+        visited_deps,
+        levels_continue,
+    );
 }
 
 fn print_dependencies<'a>(
@@ -261,7 +274,7 @@ fn print_dependencies<'a>(
     let mut it = deps.iter().peekable();
     while let Some(dependency) = it.next() {
         levels_continue.push(it.peek().is_some());
-        
+
         print_package(
             graph,
             nodes,

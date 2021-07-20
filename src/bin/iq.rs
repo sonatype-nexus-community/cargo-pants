@@ -26,7 +26,7 @@ use cli_table::{format::Border, format::Justify, print_stdout, Cell, Style, Tabl
 use console::StyledObject;
 use console::{style, Emoji};
 use indicatif::{ProgressBar, ProgressStyle};
-use log::{debug, trace, error};
+use log::{debug, error, trace};
 use std::{env, process};
 
 #[path = "../common.rs"]
@@ -204,7 +204,7 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
                         CROSS_MARK, "Error generating Nexus IQ Server results"
                     ));
                     error!("{}", e);
-                    
+
                     println!("{}", e);
 
                     process::exit(1);
