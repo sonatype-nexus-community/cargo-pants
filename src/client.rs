@@ -15,8 +15,8 @@ use std::collections::HashMap;
 
 #[allow(unused_imports)]
 use log::{debug, error};
+use reqwest::blocking::Client;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
-use reqwest::Client;
 use url::Url;
 
 use crate::{coordinate::Coordinate, package::Package};
@@ -82,7 +82,7 @@ impl OSSIndexClient {
         );
         let client = Client::new();
 
-        let mut response = client
+        let response = client
             .post(&url)
             .json(&purls)
             .headers(self.construct_headers())
