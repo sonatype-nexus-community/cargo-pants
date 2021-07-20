@@ -170,7 +170,8 @@ mod tests {
     fn test_package_data() -> Package {
         let package_data = r##"{
             "name": "claxon",
-            "version": "0.3.0"
+            "version": "0.3.0",
+            "package_id": ""
         }"##
         .as_bytes();
         serde_json::from_slice::<Package>(package_data).expect("Failed to parse package data")

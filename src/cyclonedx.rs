@@ -141,6 +141,7 @@ fn generate_1_3_sbom_from_purls(purls: Vec<Package>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use cargo_metadata::PackageId;
 
     #[test]
     fn can_generate_sbom_from_purls_test() {
@@ -158,6 +159,9 @@ mod tests {
                 pre: vec![],
             },
             license: None,
+            package_id: PackageId {
+                repr: "".to_string(),
+            },
         });
         packages.push(Package {
             name: "test".to_string(),
@@ -169,6 +173,9 @@ mod tests {
                 pre: vec![],
             },
             license: None,
+            package_id: PackageId {
+                repr: "".to_string(),
+            },
         });
         packages.push(Package {
             name: "test".to_string(),
@@ -180,6 +187,9 @@ mod tests {
                 pre: vec![],
             },
             license: Some("Apache-2.0".to_string()),
+            package_id: PackageId {
+                repr: "".to_string(),
+            },
         });
 
         let sbom = cyclonedx.generate_sbom_from_purls(packages);

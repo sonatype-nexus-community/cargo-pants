@@ -55,6 +55,13 @@ static ASCII_SYMBOLS: Symbols = Symbols {
     right: "-",
 };
 
+pub trait ParseToml {
+    fn new(toml_file_path: String, include_dev: bool) -> Self;
+    fn get_packages(&mut self) -> Result<Vec<crate::package::Package>, Error>;
+    fn print_the_graph(&self, purl: String) -> Result<(), Error>;
+    fn parse_dependencies(&mut self, metadata: Metadata, resolve: Resolve) -> Result<(), Error>;
+}
+
 pub struct ParseCargoToml {
     pub toml_file_path: String,
     pub include_dev: bool,
@@ -66,9 +73,53 @@ pub struct ParseCargoToml {
     graph: Graph<crate::package::Package, cargo_metadata::DependencyKind>,
 }
 
-impl ParseCargoToml {
-    pub fn new(toml_file_path: String, include_dev: bool) -> ParseCargoToml {
-        return ParseCargoToml {
+pub struct TestParseCargoToml {
+    pub toml_file_path: String,
+    pub include_dev: bool,
+}
+
+impl ParseToml for TestParseCargoToml {
+    fn new(_: std::string::String, _: bool) -> Self {
+        return Self{
+            include_dev: false,
+            toml_file_path: "".to_string()
+        }
+    }
+
+    fn get_packages(&mut self) -> std::result::Result<Vec<crate::package::Package>, Error> {
+        let pkg = crate::package::Package {
+            name: "test".to_string(),
+            version: cargo_metadata::Version {
+                major: 1,
+                minor: 0,
+                patch: 2,
+                build: vec![],
+                pre: vec![],
+            },
+            license: Some("Apache-2.0".to_string()),
+            package_id: PackageId {
+                repr: "".to_string(),
+            },
+        };
+
+        Ok(vec![pkg])
+    }
+
+    fn print_the_graph(&self, _: std::string::String) -> Result<(), Error> {
+        Ok(())
+    }
+    fn parse_dependencies(
+        &mut self,
+        _: cargo_metadata::Metadata,
+        _: cargo_metadata::Resolve,
+    ) -> std::result::Result<(), Error> {
+        Ok(())
+    }
+}
+
+impl ParseToml for ParseCargoToml {
+    fn new(toml_file_path: String, include_dev: bool) -> Self {
+        return Self {
             toml_file_path: toml_file_path,
             include_dev: include_dev,
             deps_add_queue: VecDeque::new(),
@@ -80,7 +131,7 @@ impl ParseCargoToml {
         };
     }
 
-    pub fn get_packages(&mut self) -> Result<Vec<crate::package::Package>, Error> {
+    fn get_packages(&mut self) -> Result<Vec<crate::package::Package>, Error> {
         debug!(
             "Attempting to get package list from {}",
             self.toml_file_path.clone()
@@ -121,7 +172,7 @@ impl ParseCargoToml {
         };
     }
 
-    pub fn print_the_graph(&self, purl: String) -> Result<(), Error> {
+    fn print_the_graph(&self, purl: String) -> Result<(), Error> {
         let symbols = &UTF8_SYMBOLS;
 
         let prefix = Prefix::Indent;

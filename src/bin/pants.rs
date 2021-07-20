@@ -15,6 +15,7 @@
 extern crate clap;
 
 use cargo_pants::ParseCargoToml;
+use cargo_pants::ParseToml;
 use cargo_pants::{client::OSSIndexClient, coordinate::Coordinate};
 use clap::ArgMatches;
 use clap::{App, Arg, SubCommand};
@@ -138,7 +139,7 @@ fn audit(toml_file_path: String, verbose_output: bool, enable_color: bool, inclu
             false,
             enable_color,
             None,
-            parser,
+            &parser,
         )
         .expect("Error writing non-vulnerable packages to output");
     } else if !verbose_output && vulnerable_package_count > 0 {
@@ -149,7 +150,7 @@ fn audit(toml_file_path: String, verbose_output: bool, enable_color: bool, inclu
             true,
             enable_color,
             None,
-            parser,
+            &parser,
         )
         .expect("Error writing vulnerable packages to output");
     }
@@ -173,7 +174,7 @@ fn write_package_output(
     vulnerable: bool,
     enable_color: bool,
     width_override: Option<u16>,
-    parser: ParseCargoToml,
+    parser: &impl ParseToml,
 ) -> io::Result<()> {
     use ansi_term::{Color, Style};
 
@@ -271,6 +272,7 @@ fn check_pants(n: &str) -> ! {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use cargo_pants::TestParseCargoToml;
     use cargo_pants::Vulnerability;
 
     #[test]
@@ -317,6 +319,7 @@ mod tests {
 
     #[test]
     fn write_package_output_non_vulnerable() {
+        let parser = TestParseCargoToml::new("".clone().to_string(), false);
         let (coordinates, package_count) = setup_test_coordinates();
         let mut package_output = Vec::new();
         write_package_output(
@@ -326,6 +329,7 @@ mod tests {
             false,
             false,
             Some(30),
+            &parser,
         )
         .expect("Failed to write package output");
         assert_eq!(
@@ -336,6 +340,7 @@ mod tests {
 
     #[test]
     fn write_package_output_vulnerable() {
+        let parser = TestParseCargoToml::new("".clone().to_string(), false);
         let (coordinates, package_count) = setup_test_coordinates();
         let mut package_output = Vec::new();
         write_package_output(
@@ -345,6 +350,7 @@ mod tests {
             true,
             false,
             Some(30),
+            &parser,
         )
         .expect("Failed to write package output");
         assert_eq!(

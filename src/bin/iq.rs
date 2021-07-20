@@ -14,6 +14,7 @@
 #[macro_use]
 extern crate clap;
 
+use cargo_pants::ParseToml;
 use cargo_pants::iq::OpenPolicyViolations;
 use cargo_pants::package::Package;
 use cargo_pants::CycloneDXGenerator;
@@ -145,7 +146,7 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
                     trace!("Response recieved: {:#?}", res.url_results);
 
                     if res.url_results.is_error {
-                        panic!(res.url_results.error_message.unwrap());
+                        panic!("{}", res.url_results.error_message.unwrap());
                     }
 
                     iq_bar.finish_with_message(format!("{}{}", CRAB, "Nexus IQ Results obtained"));
