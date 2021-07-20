@@ -33,6 +33,7 @@ use std::io::{stdout, Write};
 use std::{env, io, process};
 
 const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
+const CARGO_DEFAULT_EXCLUDE_FILE: &str = ".pants-ignore";
 
 macro_rules! ternary {
     ($c:expr, $v:expr, $v1:expr) => {
@@ -80,6 +81,13 @@ fn main() {
         .help("Disable color output"))
       .arg(logger_arg.clone())
       .arg(lockfile_arg.clone())
+      .arg(Arg::with_name("exclude-vulnerability-file")
+          .short("x")
+          .long("exclude-vulnerability-file")
+          .takes_value(true)
+          .default_value(CARGO_DEFAULT_EXCLUDE_FILE)
+          .help("Path to a file containing newline separated CVEs or OSS Index IDs to be excluded")
+      )
     )
     .get_matches();
 
