@@ -1,6 +1,6 @@
 [package]
 name = "cargo-pants"
-version = "0.2.0"
+version = "0.2.2"
 authors = ["Glenn Mohre <glenn.mohre@gmail.com>"]
 edition = "2018"
 readme = "README.md"
@@ -22,28 +22,23 @@ atty = "0.2"
 chrono = { version = "0.4", optional = true }
 clap = "2.32.0"
 env_logger = "0.6.1"
-futures = "0.1.25"
 http = "0.2.4"
-lazy_static = "1.4.0"
 log = "0.4.0"
-platforms = "0.1"
 packageurl = "0.2.0"
-reqwest = "0.9.11"
+reqwest = { version = "0.11.4", features = ["json", "blocking"] }
 serde = "1.0.42"
 serde_derive = "1.0.42"
 serde_json = "1.0.16"
-tar = "=0.4.15"
-termsize = "0.1.6"
+terminal_size = "0.1.17"
 textwrap = "0.13.4"
 thiserror = "1.0.25"
-tokio-core = "0.1.17"
 toml = "0.4"
 url = "1.7.0"
 quick-xml = "0.22.0"
 indicatif = "0.16.2"
 console = "0.14.1"
 cli-table = "0.4.6"
-log4rs = "1.0.0"
+log4rs = { version = "1.0.0", default-features = false, features = ["json_encoder", "config_parsing", "file_appender"] }
 dirs = "3.0.2"
 cargo_metadata = "0.13.1"
 ptree = "0.3"
@@ -52,3 +47,6 @@ petgraph = "0.5.1"
 
 [dev-dependencies]
 mockito = "0.15.1"
+
+[dev-dependencies]
+mockito = "0.30.0"
