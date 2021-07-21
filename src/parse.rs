@@ -117,17 +117,27 @@ impl ParseToml for TestParseCargoToml {
     }
 }
 
-impl ParseToml for ParseCargoToml {
-    fn new(toml_file_path: String, include_dev: bool) -> Self {
-        return Self {
-            toml_file_path: toml_file_path,
-            include_dev: include_dev,
+impl Default for ParseCargoToml {
+    fn default() -> Self {
+        Self {
+            toml_file_path: crate::common::CARGO_DEFAULT_TOMLFILE.to_string(),
+            include_dev: false,
             deps_add_queue: VecDeque::new(),
             packages: Vec::new(),
             nodes: HashMap::new(),
             purl_map: HashMap::new(),
             existing_packages: HashMap::new(),
             graph: Graph::new(),
+        }
+    }
+}
+
+impl ParseToml for ParseCargoToml {
+    fn new(toml_file_path: String, include_dev: bool) -> Self {
+        return Self {
+            toml_file_path: toml_file_path,
+            include_dev: include_dev,
+            ..Default::default()
         };
     }
 

@@ -130,7 +130,7 @@ fn audit(toml_file_path: String, verbose_output: bool, enable_color: bool, inclu
 
     let mut stdout = stdout();
     if verbose_output {
-        common::banner();
+        common::banner(crate_name!().to_string(), crate_version!().to_string());
 
         write_package_output(
             &mut stdout,

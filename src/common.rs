@@ -32,7 +32,7 @@ macro_rules! ternary {
     };
 }
 
-static CARGO_DEFAULT_TOMLFILE: &str = "Cargo.toml";
+pub static CARGO_DEFAULT_TOMLFILE: &str = "Cargo.toml";
 
 pub fn get_lockfile_arg() -> Arg<'static, 'static> {
     return Arg::with_name("tomlfile")
@@ -56,9 +56,9 @@ pub fn get_verbose_arg() -> Arg<'static, 'static> {
   .help("Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v");
 }
 
-pub fn banner() {
+pub fn banner(name: String, version: String) {
     println!("{}", std::include_str!("banner.txt"));
-    println!("{} version: {}", crate_name!(), crate_version!());
+    println!("{} version: {}", name, version);
 }
 
 pub fn print_no_command_found() {

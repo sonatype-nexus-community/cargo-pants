@@ -93,7 +93,7 @@ fn main() {
         ("iq", Some(sub_m)) => {
             let log_level = common::get_log_level_filter(sub_m);
 
-            common::banner();
+            common::banner(crate_name!().to_string(), crate_version!().to_string());
 
             common::construct_logger(true, log_level);
 

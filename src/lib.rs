@@ -23,6 +23,7 @@ extern crate log;
 extern crate serde_json;
 
 pub mod client;
+pub mod common;
 pub mod coordinate;
 pub mod cyclonedx;
 pub mod error;
@@ -33,7 +34,7 @@ pub mod vulnerability;
 
 pub use crate::{
     client::*, coordinate::*, cyclonedx::CycloneDXGenerator, error::*, iq::IQClient, package::*,
-    parse::*, vulnerability::*,
+    parse::*, vulnerability::*, common::*
 };
 
 // Global Singletons are bad kids. Don't use them (unless you need the terminal width everywhere).
