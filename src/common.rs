@@ -63,7 +63,10 @@ pub fn banner(name: String, version: String) {
 
 pub fn print_no_command_found(sub_command_name: String) {
     println!("Error, this tool is designed to be executed from cargo itself.");
-    println!("Therefore at least the command line parameter '{}' must be provided.", sub_command_name);
+    println!(
+        "Therefore at least the command line parameter '{}' must be provided.",
+        sub_command_name
+    );
 }
 
 pub fn print_dev_dependencies_info(dev: bool) {

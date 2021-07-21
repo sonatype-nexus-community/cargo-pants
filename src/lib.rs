@@ -35,8 +35,8 @@ pub mod parse;
 pub mod vulnerability;
 
 pub use crate::{
-    client::*, coordinate::*, cyclonedx::CycloneDXGenerator, error::*, iq::IQClient, package::*,
-    parse::*, vulnerability::*, common::*
+    client::*, common::*, coordinate::*, cyclonedx::CycloneDXGenerator, error::*, iq::IQClient,
+    package::*, parse::*, vulnerability::*,
 };
 
 pub fn calculate_term_width() -> u16 {
