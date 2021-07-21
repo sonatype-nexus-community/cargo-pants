@@ -99,7 +99,7 @@ fn main() {
 
             handle_iq_sub_command(sub_m);
         }
-        _ => common::print_no_command_found(),
+        _ => common::print_no_command_found("iq".to_string()),
     }
 }
 
