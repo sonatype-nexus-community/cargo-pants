@@ -265,8 +265,9 @@ impl IQClient {
             }
             if result.is_err() {
                 let res_err = result.unwrap_err();
-                if res_err.status().unwrap().is_client_error() {
-                    match res_err.status().unwrap() {
+                let status = res_err.status().unwrap();
+                if status.is_client_error() {
+                    match status {
                         StatusCode::NOT_FOUND => {
                             i = i + 1;
 
