@@ -64,7 +64,7 @@ fn main() {
 
             handle_pants_sub_command(sub_m);
         }
-        _ => common::print_no_command_found(),
+        _ => common::print_no_command_found("pants".to_string()),
     }
 }
 
