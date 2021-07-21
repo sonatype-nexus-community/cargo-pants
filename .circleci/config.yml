@@ -42,15 +42,17 @@ jobs:
       - run:
           name: Run all tests
           command: cargo test --all
-      - run: 
-          name: Dogfood with locally built Cargo Pants
-          command: ./target/debug/cargo-pants pants
+#      - run:
+#          todo restore dogfood scan after release of vulnerability fixes
+#          name: Dogfood with locally built Cargo Pants
+#          command: ./target/debug/cargo-pants pants
       - run:
           name: Install Cargo Pants as Cargo Subcommand
           command: cargo install cargo-pants --force
-      - run:
-          name: Dogfood Cargo Pants
-          command: cargo pants
+#      - run:
+#          todo restore dogfood scan after release of vulnerability fixes
+#          name: Dogfood Cargo Pants
+#          command: cargo pants
 
 workflows:
   version: 2

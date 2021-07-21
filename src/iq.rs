@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use reqwest::Body;
-use reqwest::Client;
+use reqwest::blocking::Client;
 use reqwest::StatusCode;
 use reqwest::Url;
 use std::error::Error;
@@ -266,8 +265,9 @@ impl IQClient {
             }
             if result.is_err() {
                 let res_err = result.unwrap_err();
-                if res_err.is_client_error() {
-                    match res_err.status().unwrap() {
+                let status = res_err.status().unwrap();
+                if status.is_client_error() {
+                    match status {
                         StatusCode::NOT_FOUND => {
                             i = i + 1;
 
@@ -295,7 +295,7 @@ impl IQClient {
         ))
         .unwrap();
 
-        let mut res = client
+        let res = client
             .get(url)
             .basic_auth(&self.user.to_string(), Some(&self.token.to_string()))
             .send()?;
@@ -320,11 +320,10 @@ impl IQClient {
         ))
         .unwrap();
 
-        let body = Body::from(sbom);
-        let mut res = client
+        let res = client
             .post(url)
             .basic_auth(&self.user.to_string(), Some(&self.token.to_string()))
-            .body(body)
+            .body(sbom.clone())
             .send()?;
 
         return res.json();
@@ -335,7 +334,7 @@ impl IQClient {
 
         let url_string = format!("{}/{}", &self.server, &status_url);
         let url = Url::parse(&url_string).unwrap();
-        let mut res = client
+        let res = client
             .get(url)
             .basic_auth(&self.user.to_string(), Some(&self.token.to_string()))
             .send()?;
@@ -351,7 +350,7 @@ impl IQClient {
 
         let url_string = format!("{}/{}", &self.server, &report_url);
         let url = Url::parse(&url_string).unwrap();
-        let mut res = client
+        let res = client
             .get(url)
             .basic_auth(&self.user.to_string(), Some(&self.token.to_string()))
             .send()?;
