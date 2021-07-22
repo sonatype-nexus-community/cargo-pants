@@ -28,14 +28,6 @@ pub struct ApplicationResponse {
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Application {
-    pub id: String,
-    pub public_id: String,
-    pub name: String,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ApplicationTag {
     pub id: String,
     pub tag_id: String,
@@ -57,6 +49,7 @@ pub struct StatusURLResult {
     pub report_data_url: String,
     pub embeddable_report_html_url: String,
     pub is_error: bool,
+    pub error_message: Option<String>,
     pub components_affected: ComponentsAffected,
     pub open_policy_violations: OpenPolicyViolations,
     pub grandfathered_policy_violations: i64,
@@ -82,37 +75,6 @@ pub struct OpenPolicyViolations {
 #[serde(rename_all = "camelCase")]
 pub struct RawReportResults {
     pub components: Vec<Component>,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Component {
-    pub hash: String,
-    pub component_identifier: ComponentIdentifier,
-    pub package_url: String,
-    pub proprietary: bool,
-    pub match_state: String,
-    pub pathnames: Vec<String>,
-    pub license_data: LicenseData,
-    pub security_data: SecurityData,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ComponentIdentifier {
-    pub format: String,
-    pub coordinates: Coordinates,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Coordinates {
-    pub artifact_id: Option<String>,
-    pub name: Option<String>,
-    pub group_id: Option<String>,
-    pub version: String,
-    pub extension: Option<String>,
-    pub classifier: Option<String>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
@@ -163,9 +125,122 @@ pub struct SecurityIssue {
     pub threat_category: String,
 }
 
+// POLICY REPORT
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PolicyReportResult {
+    pub report_time: i64,
+    pub report_title: String,
+    pub commit_hash: Option<String>,
+    pub initiator: String,
+    pub application: Application,
+    pub counts: Counts,
+    pub components: Vec<Component>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Application {
+    pub id: String,
+    pub public_id: String,
+    pub name: String,
+    pub organization_id: Option<String>,
+    pub contact_user_name: Option<String>,
+    pub application_tags: Option<Vec<ApplicationTag>>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Counts {
+    pub partially_matched_component_count: i64,
+    pub exactly_matched_component_count: i64,
+    pub total_component_count: i64,
+    pub grandfathered_policy_violation_count: i64,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Component {
+    pub hash: String,
+    pub match_state: String,
+    pub component_identifier: ComponentIdentifier,
+    pub package_url: String,
+    pub proprietary: bool,
+    pub pathnames: Vec<String>,
+    pub dependency_data: Option<DependencyData>,
+    pub violations: Option<Vec<Violation>>,
+    pub display_name: Option<String>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ComponentIdentifier {
+    pub format: String,
+    pub coordinates: Coordinates,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Coordinates {
+    pub artifact_id: Option<String>,
+    pub name: Option<String>,
+    pub group_id: Option<String>,
+    pub version: String,
+    pub extension: Option<String>,
+    pub classifier: Option<String>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DependencyData {
+    pub direct_dependency: bool,
+    pub inner_source: bool,
+    #[serde(default)]
+    pub inner_source_data: Vec<InnerSourceDaum>,
+    pub parent_component_purls: Option<Vec<String>>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InnerSourceDaum {
+    pub owner_application_name: String,
+    pub owner_application_id: String,
+    pub inner_source_component_purl: Option<String>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Violation {
+    pub policy_id: String,
+    pub policy_name: String,
+    pub policy_threat_category: String,
+    pub policy_threat_level: i64,
+    pub policy_violation_id: String,
+    pub waived: bool,
+    pub grandfathered: bool,
+    pub constraints: Vec<Constraint>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Constraint {
+    pub constraint_id: String,
+    pub constraint_name: String,
+    pub conditions: Vec<Condition>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Condition {
+    pub condition_summary: String,
+    pub condition_reason: String,
+}
+
 pub struct ReportResults {
     pub url_results: StatusURLResult,
     pub data_results: RawReportResults,
+    pub policy_report_results: PolicyReportResult,
 }
 
 #[derive(Debug)]
@@ -249,13 +324,16 @@ impl IQClient {
             };
 
             let result = self.poll_status_url(status_url_string.to_string());
+
             if result.is_ok() {
                 let res = result.unwrap();
                 let data = self.get_raw_report_results(res.report_data_url.clone());
+                let policy = self.get_policy_report_results(res.report_data_url.clone());
 
                 if data.is_ok() {
                     let combined_results: ReportResults = ReportResults {
                         data_results: data.unwrap(),
+                        policy_report_results: policy.unwrap(),
                         url_results: res,
                     };
                     return Ok(combined_results);
@@ -265,9 +343,8 @@ impl IQClient {
             }
             if result.is_err() {
                 let res_err = result.unwrap_err();
-                let status = res_err.status().unwrap();
-                if status.is_client_error() {
-                    match status {
+                if res_err.is_status() {
+                    match res_err.status().unwrap() {
                         StatusCode::NOT_FOUND => {
                             i = i + 1;
 
@@ -334,6 +411,7 @@ impl IQClient {
 
         let url_string = format!("{}/{}", &self.server, &status_url);
         let url = Url::parse(&url_string).unwrap();
+
         let res = client
             .get(url)
             .basic_auth(&self.user.to_string(), Some(&self.token.to_string()))
@@ -350,6 +428,27 @@ impl IQClient {
 
         let url_string = format!("{}/{}", &self.server, &report_url);
         let url = Url::parse(&url_string).unwrap();
+        let res = client
+            .get(url)
+            .basic_auth(&self.user.to_string(), Some(&self.token.to_string()))
+            .send()?;
+
+        return res.json();
+    }
+
+    fn get_policy_report_results(
+        &self,
+        report_url: String,
+    ) -> Result<PolicyReportResult, reqwest::Error> {
+        let client = Client::new();
+
+        let url_string = format!(
+            "{}/{}",
+            &self.server,
+            &report_url.replace("/raw", "/policy")
+        );
+        let url = Url::parse(&url_string).unwrap();
+
         let res = client
             .get(url)
             .basic_auth(&self.user.to_string(), Some(&self.token.to_string()))

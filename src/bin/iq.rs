@@ -1,4 +1,4 @@
-// Copyright 2019 Glenn Mohre.
+// Copyright 2019 Glenn Mohre, Sonatype.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,34 +11,30 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #[macro_use]
 extern crate clap;
 
-use cargo_metadata::{CargoOpt, MetadataCommand};
+use cargo_pants::iq::Component;
 use cargo_pants::iq::OpenPolicyViolations;
+use cargo_pants::iq::PolicyReportResult;
 use cargo_pants::package::Package;
 use cargo_pants::CycloneDXGenerator;
-use cargo_pants::Error;
 use cargo_pants::IQClient;
+use cargo_pants::ParseCargoToml;
+use cargo_pants::ParseToml;
 use clap::ArgMatches;
 use clap::{App, Arg, SubCommand};
-use cli_table::TableStruct;
-use cli_table::{format::Border, format::Justify, print_stdout, Cell, Style, Table};
 use console::StyledObject;
 use console::{style, Emoji};
-use dirs::home_dir;
 use indicatif::{ProgressBar, ProgressStyle};
-use log::LevelFilter;
-use log::{debug, trace};
-use log4rs::append::file::FileAppender;
-use log4rs::config::Appender;
-use log4rs::config::Logger;
-use log4rs::config::Root;
-use log4rs::encode::json::JsonEncoder;
-use log4rs::Config;
+use log::{debug, error, trace};
 use std::{env, process};
+use term_table::row::Row;
+use term_table::table_cell::TableCell;
 
-const CARGO_DEFAULT_TOML: &str = "Cargo.toml";
+#[path = "../common.rs"]
+mod common;
 
 static LOOKING_GLASS: Emoji<'_, '_> = Emoji("🔍 ", "");
 static SPARKIES: Emoji<'_, '_> = Emoji("✨ ", "");
@@ -47,29 +43,7 @@ static CRAB: Emoji<'_, '_> = Emoji("🦀 ", "");
 static SHIP: Emoji<'_, '_> = Emoji("🚢 ", "");
 static CONSTRUCTION: Emoji<'_, '_> = Emoji("🚧 ", "");
 
-macro_rules! ternary {
-    ($c:expr, $v:expr, $v1:expr) => {
-        if $c {
-            $v
-        } else {
-            $v1
-        }
-    };
-}
-
 fn main() {
-    let lockfile_arg = Arg::with_name("tomlfile")
-        .long("tomlfile")
-        .takes_value(true)
-        .help("The path to your Cargo.toml file")
-        .default_value(CARGO_DEFAULT_TOML);
-
-    let logger_arg = Arg::with_name("verbose")
-    .short("v")
-    .takes_value(false)
-    .multiple(true)
-    .help("Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v");
-
     let matches = App::new("Cargo Pants")
     .version(crate_version!())
     .bin_name("cargo")
@@ -112,35 +86,45 @@ fn main() {
         .takes_value(true)
         .default_value("60")
         .help("Specify Nexus IQ attempts in seconds"))
-      .arg(logger_arg.clone())
-      .arg(lockfile_arg.clone())
+    .arg(common::get_verbose_arg().clone())
+    .arg(common::get_lockfile_arg().clone())
+    .arg(common::get_dev_arg().clone())
     )
     .get_matches();
 
     match matches.subcommand() {
         ("iq", Some(sub_m)) => {
-            let log_level = get_log_level_filter(sub_m);
+            let log_level = common::get_log_level_filter(sub_m);
 
-            banner();
+            common::banner(crate_name!().to_string(), crate_version!().to_string());
 
-            construct_logger(true, log_level);
+            common::construct_logger(true, log_level);
 
             handle_iq_sub_command(sub_m);
         }
-        _ => print_no_command_found(),
+        _ => common::print_no_command_found("iq".to_string()),
     }
 }
 
 fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
+    let dev: bool = iq_sub_command.is_present("dev");
+    common::print_dev_dependencies_info(dev);
+
     let spinner_style = ProgressStyle::default_spinner().template("{prefix:.bold.dim} {wide_msg}");
     let package_bar = ProgressBar::new_spinner();
     package_bar.set_style(spinner_style.clone());
     package_bar.set_message(format!("{}{}", LOOKING_GLASS, "Getting package list"));
 
     let toml_file_path = iq_sub_command.value_of("tomlfile").unwrap();
-    match get_packages(toml_file_path.to_string()) {
+
+    let mut parser = ParseCargoToml::new(toml_file_path.to_string(), dev);
+    match parser.get_packages() {
         Ok(packages) => {
-            package_bar.finish_with_message(format!("{}{}", CRAB, "Obtained package list"));
+            package_bar.finish_with_message(format!(
+                "{}{}",
+                CRAB,
+                format!("Obtained package list ({})", packages.len())
+            ));
 
             let sbom_bar = ProgressBar::new_spinner();
             sbom_bar.set_style(spinner_style.clone());
@@ -150,6 +134,7 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
                 SPARKIES, "Generating SBOM representation of project"
             ));
             let sbom = handle_packages(packages);
+            trace!("{}", sbom);
             sbom_bar.finish_with_message(format!("{}{}", CRAB, "SBOM generated"));
 
             let iq_bar = ProgressBar::new_spinner();
@@ -161,19 +146,24 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
             let iq = obtain_iq_client(iq_sub_command);
             match iq.audit_with_iq_server(sbom) {
                 Ok(res) => {
+                    trace!("Response recieved: {:#?}", res.url_results);
+
+                    if res.url_results.is_error {
+                        panic!("{}", res.url_results.error_message.unwrap());
+                    }
+
                     iq_bar.finish_with_message(format!("{}{}", CRAB, "Nexus IQ Results obtained"));
                     println!("");
 
-                    let table = generate_summary_table(res.url_results.open_policy_violations);
-
                     match res.url_results.policy_action.as_ref() {
                         "Failure" => {
+                            print_iq_policy_violations(res.policy_report_results, &parser);
                             print_iq_summary(
                                 CRAB,
                                 style("Aw Crabs! Policy violations exist in your scan.")
                                     .red()
                                     .bold(),
-                                table,
+                                res.url_results.open_policy_violations,
                                 iq.server.clone(),
                                 res.url_results.report_html_url,
                             );
@@ -181,12 +171,13 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
                             process::exit(1);
                         }
                         "Warning" => {
+                            print_iq_policy_violations(res.policy_report_results, &parser);
                             print_iq_summary(
                                 CONSTRUCTION,
                                 style("Barnacles! Warnings have been detected in your scan.")
                                     .yellow()
                                     .bold(),
-                                table,
+                                res.url_results.open_policy_violations,
                                 iq.server.clone(),
                                 res.url_results.report_html_url,
                             );
@@ -197,7 +188,7 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
                                 style("Smooth sailing! No policy issues found in your scan.")
                                     .green()
                                     .bold(),
-                                table,
+                                res.url_results.open_policy_violations,
                                 iq.server.clone(),
                                 res.url_results.report_html_url,
                             );
@@ -216,6 +207,8 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
                         "{}{}",
                         CROSS_MARK, "Error generating Nexus IQ Server results"
                     ));
+                    error!("{}", e);
+
                     println!("{}", e);
 
                     process::exit(1);
@@ -233,10 +226,9 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
 }
 
 fn handle_packages(packages: Vec<Package>) -> String {
-    let purls: Vec<String> = packages.iter().map(|pkg| pkg.as_purl()).collect();
     let sbom_generator = CycloneDXGenerator {};
 
-    return sbom_generator.generate_sbom_from_purls(purls);
+    return sbom_generator.generate_sbom_from_purls(packages);
 }
 
 fn obtain_iq_client(iq_sub_command: &ArgMatches) -> IQClient {
@@ -252,116 +244,105 @@ fn obtain_iq_client(iq_sub_command: &ArgMatches) -> IQClient {
     return IQClient::new(server.clone(), user, token, stage, application, attempts);
 }
 
-fn get_log_level_filter(matches: &ArgMatches) -> LevelFilter {
-    match matches.occurrences_of("verbose") {
-        1 => return LevelFilter::Warn,
-        2 => return LevelFilter::Info,
-        3 => return LevelFilter::Debug,
-        4 => return LevelFilter::Trace,
-        _ => return LevelFilter::Error,
-    };
+fn print_iq_policy_violations(res: PolicyReportResult, parser: &impl ParseToml) -> () {
+    let policy_violations: Vec<Component> = res
+        .components
+        .clone()
+        .into_iter()
+        .filter(|p| p.violations.as_ref().map_or(false, |v| !v.is_empty()))
+        .collect();
+
+    if policy_violations.len() > 0 {
+        println!(
+            "Components ({}) with policy violations found",
+            policy_violations.len()
+        );
+        println!("");
+
+        for comp in policy_violations {
+            println!("Package URL: {}", comp.package_url);
+            match comp.violations {
+                Some(violations) => {
+                    println!(
+                        "Known violations: {}",
+                        violations
+                            .into_iter()
+                            .map(|v| policy_violation_to_styled_object(v.policy_name).to_string())
+                            .collect::<Vec<String>>()
+                            .join(",")
+                    );
+                    println!("Inverse Dependency graph");
+                    assert!(parser.print_the_graph(comp.package_url).is_ok());
+                    println!("");
+                }
+                None => {}
+            }
+        }
+
+        println!();
+    }
 }
 
-fn construct_logger(iq: bool, log_level_filter: LevelFilter) {
-    let home = home_dir().unwrap();
-
-    let log_location_base_dir = ternary!(iq, home.join(".iqserver"), home.join(".ossindex"));
-    let full_log_location = log_location_base_dir.join("cargo-pants.combined.log");
-
-    let file = FileAppender::builder()
-        .encoder(Box::new(JsonEncoder::new()))
-        .build(full_log_location.clone())
-        .unwrap();
-
-    let config = Config::builder()
-        .appender(Appender::builder().build("file", Box::new(file)))
-        .logger(
-            Logger::builder()
-                .appender("file")
-                .additive(true)
-                .build("app::file", log_level_filter),
-        )
-        .build(Root::builder().appender("file").build(log_level_filter))
-        .unwrap();
-
-    let _handle = log4rs::init_config(config).unwrap();
-
-    println!("");
-    println!("Log Level set to: {}", log_level_filter);
-    println!("Logging to: {:?}", full_log_location.clone());
-    println!("");
+fn policy_violation_to_styled_object(violation: String) -> StyledObject<String> {
+    // TODO: Implement the rest of the violation types to colors?
+    match violation.as_ref() {
+        "Security-Critical" => style(violation).red().bold(),
+        "Security-Medium" => style(violation).yellow().bold(),
+        &_ => style(violation).dim(),
+    }
 }
 
 fn print_iq_summary(
     emoji: Emoji,
     summary_line: StyledObject<&str>,
-    table: TableStruct,
+    policy_violations: OpenPolicyViolations,
     server: String,
     html_url: String,
 ) {
     println!("{}{}", emoji, summary_line);
     println!("");
-    assert!(print_stdout(table).is_ok());
+    generate_summary_table(policy_violations);
     println!("");
     println!("{}{}/{}", style("Report URL: ").dim(), server, html_url);
 }
 
-fn generate_summary_table(policy_violations: OpenPolicyViolations) -> TableStruct {
+fn generate_summary_table(policy_violations: OpenPolicyViolations) -> () {
     debug!(
         "Generating summary table with policy violations {:?}",
         policy_violations
     );
 
-    return vec![
-        vec![
-            style("Critical").red().bold().cell(),
-            policy_violations.critical.cell().justify(Justify::Right),
-        ],
-        vec![
-            style("Severe").yellow().bold().cell(),
-            policy_violations.severe.cell().justify(Justify::Right),
-        ],
-        vec![
-            style("Moderate").cyan().bold().cell(),
-            policy_violations.moderate.cell().justify(Justify::Right),
-        ],
-    ]
-    .table()
-    .border(Border::builder().build())
-    .title(vec![
-        "Policy Violation Type".cell().bold(true),
-        "Total".cell().bold(true),
-    ])
-    .bold(true);
-}
+    let mut table = term_table::Table::new();
 
-fn print_no_command_found() {
-    println!("Error, this tool is designed to be executed from cargo itself.");
-    println!("Therefore at least the command line parameter 'pants' must be provided.");
-}
+    table.style = term_table::TableStyle::rounded();
+    table.add_row(Row::new(vec![
+        TableCell::new(style("Policy Violation Type").bold()),
+        TableCell::new(style("Total").bold()),
+    ]));
+    table.add_row(Row::new(vec![
+        TableCell::new(style("Critical").red().bold()),
+        TableCell::new_with_alignment(
+            policy_violations.critical,
+            1,
+            term_table::table_cell::Alignment::Right,
+        ),
+    ]));
+    table.add_row(Row::new(vec![
+        TableCell::new(style("CVSS Score").yellow().bold()),
+        TableCell::new_with_alignment(
+            policy_violations.severe,
+            1,
+            term_table::table_cell::Alignment::Right,
+        ),
+    ]));
+    table.add_row(Row::new(vec![
+        TableCell::new(style("Moderate").cyan().bold()),
+        TableCell::new_with_alignment(
+            policy_violations.moderate,
+            1,
+            term_table::table_cell::Alignment::Right,
+        ),
+    ]));
 
-fn get_packages(toml_file_path: String) -> Result<Vec<Package>, Error> {
-    debug!("Attempting to get package list from {}", toml_file_path);
-
-    let metadata = MetadataCommand::new()
-        .manifest_path(toml_file_path)
-        .features(CargoOpt::AllFeatures)
-        .exec()?;
-
-    let packages: Vec<Package> = metadata
-        .packages
-        .into_iter()
-        .map(|p: cargo_metadata::Package| Package {
-            name: p.name,
-            version: p.version,
-        })
-        .collect();
-
-    trace!("Obtained packages {:#?}", packages);
-    return Ok(packages);
-}
-
-fn banner() {
-    println!("{}", std::include_str!("../banner.txt"));
-    println!("{} version: {}", crate_name!(), crate_version!());
+    println!("{}", table.render());
 }

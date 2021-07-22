@@ -1,4 +1,4 @@
-// Copyright 2019 Glenn Mohre.
+// Copyright 2019 Glenn Mohre, Sonatype.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -115,12 +115,11 @@ impl UrlMaker {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use env_logger::builder;
     use mockito::mock;
 
-    extern crate env_logger;
-
     fn init_logger() {
-        let _ = env_logger::builder().is_test(true).try_init();
+        let _ = builder().is_test(true).try_init();
     }
 
     #[test]
@@ -170,7 +169,8 @@ mod tests {
     fn test_package_data() -> Package {
         let package_data = r##"{
             "name": "claxon",
-            "version": "0.3.0"
+            "version": "0.3.0",
+            "package_id": ""
         }"##
         .as_bytes();
         serde_json::from_slice::<Package>(package_data).expect("Failed to parse package data")

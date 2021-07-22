@@ -1,4 +1,4 @@
-// Copyright 2019 Glenn Mohre.
+// Copyright 2019 Glenn Mohre, Sonatype.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 #[cfg(feature = "chrono")]
 use chrono;
 use std::str::Utf8Error;
-use toml;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -46,12 +45,9 @@ pub enum Error {
         open_error: std::io::Error,
     },
 
-    /// Error processing the Cargo. file
-    #[error(r#"couldn't parse the Cargo.lock file: "{lock_file}""#)]
-    ParseCargoLockToml {
-        lock_file: String,
-        parse_error: toml::de::Error,
-    },
+    /// Error processing the Cargo.toml file
+    #[error(r#"couldn't parse the Cargo.toml file: "{lock_file}""#)]
+    ParseCargoLockToml { lock_file: String },
 }
 
 impl Error {
@@ -62,10 +58,9 @@ impl Error {
         }
     }
 
-    pub fn from_cargo_toml(lock_file: &str, parse_error: toml::de::Error) -> Self {
+    pub fn from_cargo_toml(lock_file: &str) -> Self {
         Self::ParseCargoLockToml {
             lock_file: lock_file.to_owned(),
-            parse_error,
         }
     }
 }

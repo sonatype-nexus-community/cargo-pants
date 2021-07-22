@@ -1,4 +1,4 @@
-// Copyright 2019 Glenn Mohre.
+// Copyright 2019 Glenn Mohre, Sonatype.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,49 +14,23 @@
 #[macro_use]
 extern crate clap;
 
-use cargo_pants::Error;
-use cargo_pants::{
-    client::OSSIndexClient, coordinate::Coordinate, lockfile::Lockfile, package::Package,
-};
+use cargo_pants::ParseCargoToml;
+use cargo_pants::ParseToml;
+use cargo_pants::{client::OSSIndexClient, coordinate::Coordinate};
 use clap::ArgMatches;
 use clap::{App, Arg, SubCommand};
-use dirs::home_dir;
-use log::LevelFilter;
-use log::{debug, error, info};
-use log4rs::append::file::FileAppender;
-use log4rs::config::Appender;
-use log4rs::config::Logger;
-use log4rs::config::Root;
-use log4rs::encode::json::JsonEncoder;
-use log4rs::Config;
+use console::style;
+use console::StyledObject;
+use log::info;
+
 use std::io::{stdout, Write};
 use std::{env, io, process};
 
-const CARGO_DEFAULT_LOCKFILE: &str = "Cargo.lock";
-
-macro_rules! ternary {
-    ($c:expr, $v:expr, $v1:expr) => {
-        if $c {
-            $v
-        } else {
-            $v1
-        }
-    };
-}
+#[path = "../common.rs"]
+#[macro_use]
+mod common;
 
 fn main() {
-    let lockfile_arg = Arg::with_name("lockfile")
-        .long("lockfile")
-        .takes_value(true)
-        .help("The path to your Cargo.lock file")
-        .default_value(CARGO_DEFAULT_LOCKFILE);
-
-    let logger_arg = Arg::with_name("verbose")
-    .short("v")
-    .takes_value(false)
-    .multiple(true)
-    .help("Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v");
-
     let matches = App::new("Cargo Pants")
     .version(crate_version!())
     .bin_name("cargo")
@@ -78,20 +52,21 @@ fn main() {
         .long("no-color")
         .takes_value(false)
         .help("Disable color output"))
-      .arg(logger_arg.clone())
-      .arg(lockfile_arg.clone())
+      .arg(common::get_verbose_arg().clone())
+      .arg(common::get_lockfile_arg().clone())
+      .arg(common::get_dev_arg().clone())
     )
     .get_matches();
 
     match matches.subcommand() {
         ("pants", Some(sub_m)) => {
-            let log_level = get_log_level_filter(sub_m);
+            let log_level = common::get_log_level_filter(sub_m);
 
-            construct_logger(false, log_level);
+            common::construct_logger(false, log_level);
 
             handle_pants_sub_command(sub_m);
         }
-        _ => print_no_command_found(),
+        _ => common::print_no_command_found("pants".to_string()),
     }
 }
 
@@ -100,56 +75,19 @@ fn handle_pants_sub_command(pants_matches: &ArgMatches) {
         check_pants(pants_style);
     }
 
-    let lockfile_path = pants_matches.value_of("lockfile").unwrap();
+    let toml_file_path = pants_matches.value_of("tomlfile").unwrap();
     let verbose_output = pants_matches.is_present("loud");
     let enable_color: bool = !pants_matches.is_present("no-color");
+    let dev: bool = pants_matches.is_present("dev");
 
-    audit(lockfile_path.to_string(), verbose_output, enable_color);
-}
+    common::print_dev_dependencies_info(dev);
 
-fn get_log_level_filter(matches: &ArgMatches) -> LevelFilter {
-    match matches.occurrences_of("verbose") {
-        1 => return LevelFilter::Warn,
-        2 => return LevelFilter::Info,
-        3 => return LevelFilter::Debug,
-        4 => return LevelFilter::Trace,
-        _ => return LevelFilter::Error,
-    };
-}
-
-fn construct_logger(iq: bool, log_level_filter: LevelFilter) {
-    let home = home_dir().unwrap();
-
-    let log_location_base_dir = ternary!(iq, home.join(".iqserver"), home.join(".ossindex"));
-    let full_log_location = log_location_base_dir.join("cargo-pants.combined.log");
-
-    let file = FileAppender::builder()
-        .encoder(Box::new(JsonEncoder::new()))
-        .build(full_log_location.clone())
-        .unwrap();
-
-    let config = Config::builder()
-        .appender(Appender::builder().build("file", Box::new(file)))
-        .logger(
-            Logger::builder()
-                .appender("file")
-                .additive(true)
-                .build("app::file", log_level_filter),
-        )
-        .build(Root::builder().appender("file").build(log_level_filter))
-        .unwrap();
-
-    let _handle = log4rs::init_config(config).unwrap();
-
-    println!("");
-    println!("Log Level set to: {}", log_level_filter);
-    println!("Logging to: {:?}", full_log_location.clone());
-    println!("");
-}
-
-fn print_no_command_found() {
-    println!("Error, this tool is designed to be executed from cargo itself.");
-    println!("Therefore at least the command line parameter 'pants' must be provided.");
+    audit(
+        toml_file_path.to_string(),
+        verbose_output,
+        enable_color,
+        dev,
+    );
 }
 
 fn get_api_key() -> Option<String> {
@@ -163,25 +101,9 @@ fn get_api_key() -> Option<String> {
     };
 }
 
-fn get_packages(lockfile_path: String) -> Result<Vec<Package>, Error> {
-    debug!("Attempting to get package list from {}", lockfile_path);
-
-    match Lockfile::load(lockfile_path) {
-        Ok(f) => {
-            debug!("Got packages from lockfile, cloning and moving forward");
-            let packages: Vec<Package> = f.packages.clone();
-
-            return Ok(packages);
-        }
-        Err(e) => {
-            error!("Encountered error in get_packages, attempting to load Lockfile");
-            return Err(e);
-        }
-    };
-}
-
-fn audit(lockfile_path: String, verbose_output: bool, enable_color: bool) -> ! {
-    let packages = match get_packages(lockfile_path) {
+fn audit(toml_file_path: String, verbose_output: bool, enable_color: bool, include_dev: bool) -> ! {
+    let mut parser = ParseCargoToml::new(toml_file_path.clone(), include_dev);
+    let packages = match parser.get_packages() {
         Ok(packages) => packages,
         Err(e) => {
             println!("{}", e);
@@ -210,7 +132,7 @@ fn audit(lockfile_path: String, verbose_output: bool, enable_color: bool) -> ! {
 
     let mut stdout = stdout();
     if verbose_output {
-        banner();
+        common::banner(crate_name!().to_string(), crate_version!().to_string());
 
         write_package_output(
             &mut stdout,
@@ -219,11 +141,10 @@ fn audit(lockfile_path: String, verbose_output: bool, enable_color: bool) -> ! {
             false,
             enable_color,
             None,
+            &parser,
         )
         .expect("Error writing non-vulnerable packages to output");
-    }
-
-    if vulnerable_package_count > 0 {
+    } else if !verbose_output && vulnerable_package_count > 0 {
         write_package_output(
             &mut stdout,
             &coordinates,
@@ -231,6 +152,7 @@ fn audit(lockfile_path: String, verbose_output: bool, enable_color: bool) -> ! {
             true,
             enable_color,
             None,
+            &parser,
         )
         .expect("Error writing vulnerable packages to output");
     }
@@ -247,11 +169,6 @@ fn audit(lockfile_path: String, verbose_output: bool, enable_color: bool) -> ! {
     }
 }
 
-fn banner() {
-    println!("{}", std::include_str!("banner.txt"));
-    println!("{} version: {}", crate_name!(), crate_version!());
-}
-
 fn write_package_output(
     output: &mut dyn Write,
     coordinates: &Vec<Coordinate>,
@@ -259,9 +176,8 @@ fn write_package_output(
     vulnerable: bool,
     enable_color: bool,
     width_override: Option<u16>,
+    parser: &impl ParseToml,
 ) -> io::Result<()> {
-    use ansi_term::{Color, Style};
-
     let vulnerability = ternary!(vulnerable, "Vulnerable", "Non-vulnerable");
 
     writeln!(output, "\n{} Dependencies\n", vulnerability)?;
@@ -271,18 +187,13 @@ fn write_package_output(
         .filter(|c| vulnerable == c.has_vulnerabilities())
         .enumerate()
     {
-        let style: Style = match vulnerable {
-            true => Color::Red.bold(),
-            false => Color::Green.normal(),
-        };
-
         if enable_color {
             writeln!(
                 output,
                 "[{}/{}] {}",
                 index + 1,
                 package_count,
-                style.paint(&coordinate.purl)
+                style_purl(vulnerable, coordinate.purl.clone())
             )?;
         } else {
             writeln!(
@@ -290,7 +201,7 @@ fn write_package_output(
                 "[{}/{}] {}",
                 index + 1,
                 package_count,
-                &coordinate.purl
+                coordinate.purl
             )?;
         }
         if vulnerable {
@@ -302,7 +213,7 @@ fn write_package_output(
 
             let text = format!("{} known {} found", vulnerability_count, plural_text);
             if enable_color {
-                writeln!(output, "{}", Color::Red.paint(text))?;
+                writeln!(output, "{}", style(text).red())?;
             } else {
                 writeln!(output, "{}", text)?;
             }
@@ -315,9 +226,20 @@ fn write_package_output(
                     writeln!(output, "\n")?;
                 }
             }
+
+            println!("Inverse Dependency graph");
+            assert!(parser.print_the_graph(coordinate.purl.clone()).is_ok());
+            println!("");
         }
     }
     Ok(())
+}
+
+fn style_purl(vulnerable: bool, purl: String) -> StyledObject<String> {
+    match vulnerable {
+        true => style(purl).red().bold(),
+        false => style(purl).green(),
+    }
 }
 
 fn get_summary_message(component_count: u32, vulnerability_count: u32) -> String {
@@ -352,6 +274,7 @@ fn check_pants(n: &str) -> ! {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use cargo_pants::TestParseCargoToml;
     use cargo_pants::Vulnerability;
 
     #[test]
@@ -398,6 +321,7 @@ mod tests {
 
     #[test]
     fn write_package_output_non_vulnerable() {
+        let parser = TestParseCargoToml::new("".clone().to_string(), false);
         let (coordinates, package_count) = setup_test_coordinates();
         let mut package_output = Vec::new();
         write_package_output(
@@ -407,6 +331,7 @@ mod tests {
             false,
             false,
             Some(30),
+            &parser,
         )
         .expect("Failed to write package output");
         assert_eq!(
@@ -417,6 +342,7 @@ mod tests {
 
     #[test]
     fn write_package_output_vulnerable() {
+        let parser = TestParseCargoToml::new("".clone().to_string(), false);
         let (coordinates, package_count) = setup_test_coordinates();
         let mut package_output = Vec::new();
         write_package_output(
@@ -426,46 +352,12 @@ mod tests {
             true,
             false,
             Some(30),
+            &parser,
         )
         .expect("Failed to write package output");
         assert_eq!(
           convert_output(&package_output),
-          "\nVulnerable Dependencies\n\n[1/3] coord one purl-1vuln\n1 known vulnerability found\n\
-          ╭────────────────────────────╮\
-          │ coord1-vuln1 title         │\
-          ├─────────────┬──────────────┤\
-          │ Description ┆              │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │  CVSS Score ┆ 0            │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │ CVSS Vector ┆              │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │   Reference ┆              │\
-          ╰─────────────┴──────────────╯\
-          \n\n[2/3] coord two purl-3vulns\n3 known vulnerabilities found\n\
-          ╭────────────────────────────╮\
-          │ coord2-vuln1 title         │\
-          ├─────────────┬──────────────┤\
-          │ Description ┆              │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │  CVSS Score ┆ 0            │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │ CVSS Vector ┆              │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │   Reference ┆              │\
-          ╰─────────────┴──────────────╯\n\n\
-          ╭────────────────────────────╮\
-          │ coord2-vuln3 title         │\
-          ├─────────────┬──────────────┤\
-          │ Description ┆              │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │  CVSS Score ┆ 0            │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │ CVSS Vector ┆              │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │   Reference ┆              │\
-          ╰─────────────┴──────────────╯\
-          \n\n"
+          "\nVulnerable Dependencies\n\n[1/3] coord one purl-1vuln\n1 known vulnerability found\n\nVulnerability Title: coord1-vuln1 title\n╭─────────────┬───╮\n│ Description │   │\n├─────────────┼───┤\n│ CVSS Score  │ 0 │\n├─────────────┼───┤\n│ CVSS Vector │   │\n├─────────────┼───┤\n│ Reference   │   │\n╰─────────────┴───╯\n\n\n[2/3] coord two purl-3vulns\n3 known vulnerabilities found\n\nVulnerability Title: coord2-vuln1 title\n╭─────────────┬───╮\n│ Description │   │\n├─────────────┼───┤\n│ CVSS Score  │ 0 │\n├─────────────┼───┤\n│ CVSS Vector │   │\n├─────────────┼───┤\n│ Reference   │   │\n╰─────────────┴───╯\n\n\n\nVulnerability Title: coord2-vuln3 title\n╭─────────────┬───╮\n│ Description │   │\n├─────────────┼───┤\n│ CVSS Score  │ 0 │\n├─────────────┼───┤\n│ CVSS Vector │   │\n├─────────────┼───┤\n│ Reference   │   │\n╰─────────────┴───╯\n\n\n"
       );
     }
 

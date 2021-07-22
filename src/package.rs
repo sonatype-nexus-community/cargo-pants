@@ -1,4 +1,4 @@
-// Copyright 2019 Glenn Mohre.
+// Copyright 2019 Glenn Mohre, Sonatype.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,13 +25,15 @@ pub struct Package {
 
     /// Crate version (using `semver`)
     pub version: Version,
-    // /// Source of the crate
+
+    pub license: Option<String>, // /// Source of the crate
     // #[serde(default)]
     // pub source: String,
 
     // /// Dependencies of this crate
     // #[serde(default)]
-    // pub dependencies: Vec<String>,
+    // pub dependencies: Vec<String>
+    pub package_id: cargo_metadata::PackageId,
 }
 
 impl Package {

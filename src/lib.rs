@@ -1,4 +1,4 @@
-// Copyright 2019 Glenn Mohre.
+// Copyright 2019 Glenn Mohre, Sonatype.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,24 +18,24 @@ extern crate url;
 
 #[macro_use]
 extern crate serde_derive;
-extern crate env_logger;
 extern crate log;
 extern crate serde_json;
 
 use terminal_size::{terminal_size, Height, Width};
 
 pub mod client;
+pub mod common;
 pub mod coordinate;
 pub mod cyclonedx;
 pub mod error;
 pub mod iq;
-pub mod lockfile;
 pub mod package;
+pub mod parse;
 pub mod vulnerability;
 
 pub use crate::{
-    client::*, coordinate::*, cyclonedx::CycloneDXGenerator, error::*, iq::IQClient, lockfile::*,
-    package::*, vulnerability::*,
+    client::*, common::*, coordinate::*, cyclonedx::CycloneDXGenerator, error::*, iq::IQClient,
+    package::*, parse::*, vulnerability::*,
 };
 
 pub fn calculate_term_width() -> u16 {
