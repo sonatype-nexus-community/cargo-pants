@@ -15,10 +15,11 @@
 #[macro_use]
 extern crate clap;
 
+use term_table::table_cell::TableCell;
+use term_table::row::Row;
 use cargo_pants::iq::Component;
 use cargo_pants::iq::OpenPolicyViolations;
 use cargo_pants::iq::PolicyReportResult;
-use cargo_pants::iq::Violation;
 use cargo_pants::package::Package;
 use cargo_pants::CycloneDXGenerator;
 use cargo_pants::IQClient;
@@ -26,8 +27,6 @@ use cargo_pants::ParseCargoToml;
 use cargo_pants::ParseToml;
 use clap::ArgMatches;
 use clap::{App, Arg, SubCommand};
-use cli_table::TableStruct;
-use cli_table::{format::Border, format::Justify, print_stdout, Cell, Style, Table};
 use console::StyledObject;
 use console::{style, Emoji};
 use indicatif::{ProgressBar, ProgressStyle};
@@ -156,8 +155,6 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
                     iq_bar.finish_with_message(format!("{}{}", CRAB, "Nexus IQ Results obtained"));
                     println!("");
 
-                    let table = generate_summary_table(res.url_results.open_policy_violations);
-
                     match res.url_results.policy_action.as_ref() {
                         "Failure" => {
                             print_iq_policy_violations(res.policy_report_results, &parser);
@@ -166,7 +163,7 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
                                 style("Aw Crabs! Policy violations exist in your scan.")
                                     .red()
                                     .bold(),
-                                table,
+                                res.url_results.open_policy_violations,
                                 iq.server.clone(),
                                 res.url_results.report_html_url,
                             );
@@ -180,7 +177,7 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
                                 style("Barnacles! Warnings have been detected in your scan.")
                                     .yellow()
                                     .bold(),
-                                table,
+                                res.url_results.open_policy_violations,
                                 iq.server.clone(),
                                 res.url_results.report_html_url,
                             );
@@ -191,7 +188,7 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
                                 style("Smooth sailing! No policy issues found in your scan.")
                                     .green()
                                     .bold(),
-                                table,
+                                res.url_results.open_policy_violations,
                                 iq.server.clone(),
                                 res.url_results.report_html_url,
                             );
@@ -298,42 +295,42 @@ fn policy_violation_to_styled_object(violation: String) -> StyledObject<String> 
 fn print_iq_summary(
     emoji: Emoji,
     summary_line: StyledObject<&str>,
-    table: TableStruct,
+    policy_violations: OpenPolicyViolations,
     server: String,
     html_url: String,
 ) {
     println!("{}{}", emoji, summary_line);
     println!("");
-    assert!(print_stdout(table).is_ok());
+    generate_summary_table(policy_violations);
     println!("");
     println!("{}{}/{}", style("Report URL: ").dim(), server, html_url);
 }
 
-fn generate_summary_table(policy_violations: OpenPolicyViolations) -> TableStruct {
+fn generate_summary_table(policy_violations: OpenPolicyViolations) -> () {
     debug!(
         "Generating summary table with policy violations {:?}",
         policy_violations
     );
 
-    return vec![
-        vec![
-            style("Critical").red().bold().cell(),
-            policy_violations.critical.cell().justify(Justify::Right),
-        ],
-        vec![
-            style("Severe").yellow().bold().cell(),
-            policy_violations.severe.cell().justify(Justify::Right),
-        ],
-        vec![
-            style("Moderate").cyan().bold().cell(),
-            policy_violations.moderate.cell().justify(Justify::Right),
-        ],
-    ]
-    .table()
-    .border(Border::builder().build())
-    .title(vec![
-        "Policy Violation Type".cell().bold(true),
-        "Total".cell().bold(true),
-    ])
-    .bold(true);
+    let mut table = term_table::Table::new();
+
+    table.style = term_table::TableStyle::rounded();
+    table.add_row(Row::new(vec![
+        TableCell::new(style("Policy Violation Type").bold()),
+        TableCell::new(style("Total").bold())
+    ]));
+    table.add_row(Row::new(vec![
+        TableCell::new(style("Critical").red().bold()),
+        TableCell::new_with_alignment(policy_violations.critical, 1, term_table::table_cell::Alignment::Right)
+    ]));
+    table.add_row(Row::new(vec![
+        TableCell::new(style("CVSS Score").yellow().bold()),
+        TableCell::new_with_alignment(policy_violations.severe, 1, term_table::table_cell::Alignment::Right)
+    ]));
+    table.add_row(Row::new(vec![
+        TableCell::new(style("Moderate").cyan().bold()),
+        TableCell::new_with_alignment(policy_violations.moderate, 1, term_table::table_cell::Alignment::Right)
+    ]));
+
+    println!("{}", table.render());
 }
