@@ -252,17 +252,7 @@ fn print_iq_policy_violations(res: PolicyReportResult, parser: &impl ParseToml) 
         .components
         .clone()
         .into_iter()
-        .filter(|p| {
-            if p.violations
-                .as_ref()
-                .unwrap_or(&(vec![] as Vec<Violation>))
-                .is_empty()
-            {
-                return false;
-            } else {
-                return true;
-            }
-        })
+        .filter(|p| p.violations.as_ref().map_or(false, |v| !v.is_empty()))
         .collect();
 
     if policy_violations.len() > 0 {
