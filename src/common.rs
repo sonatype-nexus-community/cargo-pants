@@ -47,6 +47,16 @@ pub fn print_dev_dependencies_info(dev: bool) {
     println!("");
 }
 
+pub fn parse_log_level(verbosity: u64) -> LevelFilter {
+    match verbosity {
+        1 => return LevelFilter::Warn,
+        2 => return LevelFilter::Info,
+        3 => return LevelFilter::Debug,
+        4 => return LevelFilter::Trace,
+        _ => return LevelFilter::Error,
+    }
+}
+
 pub fn construct_logger(iq: bool, log_level_filter: LevelFilter) {
     let home = home_dir().unwrap();
 

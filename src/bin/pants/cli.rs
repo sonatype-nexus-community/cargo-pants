@@ -21,7 +21,7 @@ pub enum Opt {
         toml_file: PathBuf,
 
         /// Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v
-        #[structopt(short = "v", long = "verbose", parse(from_occurrences = parse_log_level))]
+        #[structopt(short = "v", long = "verbose", parse(from_occurrences = common::parse_log_level))]
         log_level: LevelFilter,
 
         /// A flag to include dev dependencies
@@ -44,14 +44,4 @@ pub enum Opt {
         #[structopt(long = "ossi-api-key", env, hide_env_values = true)]
         oss_index_api_key: Option<String>,
     },
-}
-
-fn parse_log_level(verbosity: u64) -> LevelFilter {
-    match verbosity {
-        1 => return LevelFilter::Warn,
-        2 => return LevelFilter::Info,
-        3 => return LevelFilter::Debug,
-        4 => return LevelFilter::Trace,
-        _ => return LevelFilter::Error,
-    }
 }
