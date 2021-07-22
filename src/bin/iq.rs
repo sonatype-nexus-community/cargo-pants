@@ -14,7 +14,10 @@
 #[macro_use]
 extern crate clap;
 
+use cargo_pants::iq::Component;
 use cargo_pants::iq::OpenPolicyViolations;
+use cargo_pants::iq::PolicyReportResult;
+use cargo_pants::iq::Violation;
 use cargo_pants::package::Package;
 use cargo_pants::CycloneDXGenerator;
 use cargo_pants::IQClient;
@@ -156,6 +159,7 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
 
                     match res.url_results.policy_action.as_ref() {
                         "Failure" => {
+                            print_iq_policy_violations(res.policy_report_results, &parser);
                             print_iq_summary(
                                 CRAB,
                                 style("Aw Crabs! Policy violations exist in your scan.")
@@ -169,6 +173,7 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
                             process::exit(1);
                         }
                         "Warning" => {
+                            print_iq_policy_violations(res.policy_report_results, &parser);
                             print_iq_summary(
                                 CONSTRUCTION,
                                 style("Barnacles! Warnings have been detected in your scan.")
@@ -239,6 +244,47 @@ fn obtain_iq_client(iq_sub_command: &ArgMatches) -> IQClient {
         .unwrap();
 
     return IQClient::new(server.clone(), user, token, stage, application, attempts);
+}
+
+fn print_iq_policy_violations(res: PolicyReportResult, parser: &impl ParseToml) -> () {
+    let policy_violations: Vec<Component> = res
+        .components
+        .clone()
+        .into_iter()
+        .filter(|p| {
+            if p.violations
+                .as_ref()
+                .unwrap_or(&(vec![] as Vec<Violation>))
+                .is_empty()
+            {
+                return false;
+            } else {
+                return true;
+            }
+        })
+        .collect();
+
+    for comp in policy_violations {
+        println!("Package URL: {}", comp.package_url);
+        match comp.violations {
+            Some(violations) => {
+                println!(
+                    "\tKnown violations: {}",
+                    violations
+                        .into_iter()
+                        .map(|v| v.policy_name as String)
+                        .collect::<Vec<String>>()
+                        .join(",")
+                );
+                println!("\tInverse Dependency graph");
+                assert!(parser.print_the_graph(comp.package_url).is_ok());
+                println!("");
+            }
+            None => {}
+        }
+    }
+
+    println!();
 }
 
 fn print_iq_summary(
