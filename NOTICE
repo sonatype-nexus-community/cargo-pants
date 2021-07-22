@@ -2,7 +2,10 @@ cargo-pants
 Copyright 2019 Glenn Mohre, Sonatype.
 
 This product includes software developed by authors of https://github.com/sfackler/cargo-tree and 
-contains code derived from that project package distributed on GitHub. The software has been modified to:
+contains code derived from that project package distributed on GitHub. The project is dual licensed as 
+Apache and MIT, and compatible with the Apache license used on this project.
+
+The software has been modified to:
 
 - Use the types we are using
 - Customize how the graph is constructed
