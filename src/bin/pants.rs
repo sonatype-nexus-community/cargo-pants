@@ -19,6 +19,8 @@ use cargo_pants::ParseToml;
 use cargo_pants::{client::OSSIndexClient, coordinate::Coordinate};
 use clap::ArgMatches;
 use clap::{App, Arg, SubCommand};
+use console::style;
+use console::StyledObject;
 use log::info;
 
 use std::io::{stdout, Write};
@@ -176,8 +178,6 @@ fn write_package_output(
     width_override: Option<u16>,
     parser: &impl ParseToml,
 ) -> io::Result<()> {
-    use ansi_term::{Color, Style};
-
     let vulnerability = ternary!(vulnerable, "Vulnerable", "Non-vulnerable");
 
     writeln!(output, "\n{} Dependencies\n", vulnerability)?;
@@ -187,18 +187,13 @@ fn write_package_output(
         .filter(|c| vulnerable == c.has_vulnerabilities())
         .enumerate()
     {
-        let style: Style = match vulnerable {
-            true => Color::Red.bold(),
-            false => Color::Green.normal(),
-        };
-
         if enable_color {
             writeln!(
                 output,
                 "[{}/{}] {}",
                 index + 1,
                 package_count,
-                style.paint(&coordinate.purl)
+                get_purl_color(vulnerable, coordinate.purl.clone())
             )?;
         } else {
             writeln!(
@@ -206,7 +201,7 @@ fn write_package_output(
                 "[{}/{}] {}",
                 index + 1,
                 package_count,
-                &coordinate.purl
+                coordinate.purl
             )?;
         }
         if vulnerable {
@@ -218,7 +213,7 @@ fn write_package_output(
 
             let text = format!("{} known {} found", vulnerability_count, plural_text);
             if enable_color {
-                writeln!(output, "{}", Color::Red.paint(text))?;
+                writeln!(output, "{}", style(text).red())?;
             } else {
                 writeln!(output, "{}", text)?;
             }
@@ -238,6 +233,13 @@ fn write_package_output(
         }
     }
     Ok(())
+}
+
+fn get_purl_color(vulnerable: bool, val: String) -> StyledObject<String> {
+    match vulnerable {
+        true => style(val).red().bold(),
+        false => style(val).green(),
+    }
 }
 
 fn get_summary_message(component_count: u32, vulnerability_count: u32) -> String {

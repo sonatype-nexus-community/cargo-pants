@@ -24,30 +24,6 @@ impl Coordinate {
         }
         score
     }
-
-    pub fn get_threat_color(&self) -> Option<ansi_term::Color> {
-        use ansi_term::Color;
-
-        match self.get_threat_score() {
-            9..=10 => Some(Color::Red),
-            7..=8 => Some(Color::Red),
-            4..=6 => Some(Color::Yellow),
-            _ => None,
-        }
-    }
-
-    pub fn get_threat_format(&self) -> ansi_term::Style {
-        use ansi_term::{Color, Style};
-
-        let color: Option<Color> = self.get_threat_color();
-        match color {
-            Some(value) => match self.get_threat_score() {
-                9..=10 => value.bold(),
-                _ => value.normal(),
-            },
-            None => Style::default(),
-        }
-    }
 }
 
 impl fmt::Display for Coordinate {
