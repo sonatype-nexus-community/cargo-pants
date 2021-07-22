@@ -357,42 +357,7 @@ mod tests {
         .expect("Failed to write package output");
         assert_eq!(
           convert_output(&package_output),
-          "\nVulnerable Dependencies\n\n[1/3] coord one purl-1vuln\n1 known vulnerability found\n\
-          ╭────────────────────────────╮\
-          │ coord1-vuln1 title         │\
-          ├─────────────┬──────────────┤\
-          │ Description ┆              │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │  CVSS Score ┆ 0            │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │ CVSS Vector ┆              │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │   Reference ┆              │\
-          ╰─────────────┴──────────────╯\
-          \n\n[2/3] coord two purl-3vulns\n3 known vulnerabilities found\n\
-          ╭────────────────────────────╮\
-          │ coord2-vuln1 title         │\
-          ├─────────────┬──────────────┤\
-          │ Description ┆              │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │  CVSS Score ┆ 0            │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │ CVSS Vector ┆              │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │   Reference ┆              │\
-          ╰─────────────┴──────────────╯\n\n\
-          ╭────────────────────────────╮\
-          │ coord2-vuln3 title         │\
-          ├─────────────┬──────────────┤\
-          │ Description ┆              │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │  CVSS Score ┆ 0            │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │ CVSS Vector ┆              │\
-          ├╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤\
-          │   Reference ┆              │\
-          ╰─────────────┴──────────────╯\
-          \n\n"
+          "\nVulnerable Dependencies\n\n[1/3] coord one purl-1vuln\n1 known vulnerability found\n\nVulnerability Title: coord1-vuln1 title\n╭─────────────┬───╮\n│ Description │   │\n├─────────────┼───┤\n│ CVSS Score  │ 0 │\n├─────────────┼───┤\n│ CVSS Vector │   │\n├─────────────┼───┤\n│ Reference   │   │\n╰─────────────┴───╯\n\n\n[2/3] coord two purl-3vulns\n3 known vulnerabilities found\n\nVulnerability Title: coord2-vuln1 title\n╭─────────────┬───╮\n│ Description │   │\n├─────────────┼───┤\n│ CVSS Score  │ 0 │\n├─────────────┼───┤\n│ CVSS Vector │   │\n├─────────────┼───┤\n│ Reference   │   │\n╰─────────────┴───╯\n\n\n\nVulnerability Title: coord2-vuln3 title\n╭─────────────┬───╮\n│ Description │   │\n├─────────────┼───┤\n│ CVSS Score  │ 0 │\n├─────────────┼───┤\n│ CVSS Vector │   │\n├─────────────┼───┤\n│ Reference   │   │\n╰─────────────┴───╯\n\n\n"
       );
     }
 
