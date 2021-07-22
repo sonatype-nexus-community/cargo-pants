@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use clap::{Arg, ArgMatches};
 use dirs::home_dir;
 use log::LevelFilter;
 use log4rs::append::file::FileAppender;
@@ -34,39 +33,9 @@ macro_rules! ternary {
 
 pub static CARGO_DEFAULT_TOMLFILE: &str = "Cargo.toml";
 
-pub fn get_lockfile_arg() -> Arg<'static, 'static> {
-    return Arg::with_name("tomlfile")
-        .long("tomlfile")
-        .takes_value(true)
-        .help("The path to your Cargo.toml file")
-        .default_value(CARGO_DEFAULT_TOMLFILE);
-}
-
-pub fn get_dev_arg() -> Arg<'static, 'static> {
-    return Arg::with_name("dev")
-        .long("dev")
-        .help("A flag to include dev dependencies");
-}
-
-pub fn get_verbose_arg() -> Arg<'static, 'static> {
-    return Arg::with_name("verbose")
-  .short("v")
-  .takes_value(false)
-  .multiple(true)
-  .help("Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v");
-}
-
 pub fn banner(name: String, version: String) {
     println!("{}", std::include_str!("banner.txt"));
     println!("{} version: {}", name, version);
-}
-
-pub fn print_no_command_found(sub_command_name: String) {
-    println!("Error, this tool is designed to be executed from cargo itself.");
-    println!(
-        "Therefore at least the command line parameter '{}' must be provided.",
-        sub_command_name
-    );
 }
 
 pub fn print_dev_dependencies_info(dev: bool) {
@@ -78,14 +47,14 @@ pub fn print_dev_dependencies_info(dev: bool) {
     println!("");
 }
 
-pub fn get_log_level_filter(matches: &ArgMatches) -> LevelFilter {
-    match matches.occurrences_of("verbose") {
+pub fn parse_log_level(verbosity: u64) -> LevelFilter {
+    match verbosity {
         1 => return LevelFilter::Warn,
         2 => return LevelFilter::Info,
         3 => return LevelFilter::Debug,
         4 => return LevelFilter::Trace,
         _ => return LevelFilter::Error,
-    };
+    }
 }
 
 pub fn construct_logger(iq: bool, log_level_filter: LevelFilter) {

@@ -10,14 +10,14 @@ license = "Apache-2.0"
 
 [[bin]]
 name = "cargo-pants"
-path = "src/bin/pants.rs"
+path = "src/bin/pants/main.rs"
 
 [[bin]]
 name = "cargo-iq"
-path = "src/bin/iq.rs"
+path = "src/bin/iq/main.rs"
 
 [dependencies]
-clap = { version = "2.32.0", default-features = false }
+structopt = "0.3.22"
 log = "0.4.0"
 packageurl = "0.2.0"
 reqwest = { version = "0.11.4", features = ["json", "blocking"] }
