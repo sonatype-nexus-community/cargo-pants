@@ -5,7 +5,7 @@ git config user.name "$GITHUB_USERNAME" && git config user.email "$GITHUB_EMAIL"
 
 cargo install cargo-bump --force
 
-cargo bump minor
+cargo bump patch
 
 VERSION=$(grep -e '^version' Cargo.toml | cut -d "\"" -f2)
 
