@@ -276,14 +276,17 @@ fn print_iq_policy_violations(res: PolicyReportResult, parser: &impl ParseToml) 
             match comp.violations {
                 Some(violations) => {
                     println!(
-                        "\tKnown violations: {}",
+                        "Known violations: {}",
                         violations
                             .into_iter()
-                            .map(|v| v.policy_name as String)
+                            .map(
+                                |v| policy_violation_to_styled_object(v.policy_name as String)
+                                    .to_string()
+                            )
                             .collect::<Vec<String>>()
                             .join(",")
                     );
-                    println!("\tInverse Dependency graph");
+                    println!("Inverse Dependency graph");
                     assert!(parser.print_the_graph(comp.package_url).is_ok());
                     println!("");
                 }
@@ -292,6 +295,15 @@ fn print_iq_policy_violations(res: PolicyReportResult, parser: &impl ParseToml) 
         }
 
         println!();
+    }
+}
+
+fn policy_violation_to_styled_object(violation: String) -> StyledObject<String> {
+    // TODO: Implement the rest of the violation types to colors?
+    match violation.as_ref() {
+        "Security-Critical" => style(violation).red().bold(),
+        "Security-Medium" => style(violation).yellow().bold(),
+        &_ => style(violation).dim(),
     }
 }
 
