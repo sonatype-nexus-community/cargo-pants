@@ -1,4 +1,4 @@
-// Copyright 2019 Glenn Mohre.
+// Copyright 2019 Glenn Mohre, Sonatype.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,10 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #[macro_use]
 extern crate clap;
 
+use cargo_pants::iq::Component;
 use cargo_pants::iq::OpenPolicyViolations;
+use cargo_pants::iq::PolicyReportResult;
+use cargo_pants::iq::Violation;
 use cargo_pants::package::Package;
 use cargo_pants::CycloneDXGenerator;
 use cargo_pants::IQClient;
@@ -156,6 +160,7 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
 
                     match res.url_results.policy_action.as_ref() {
                         "Failure" => {
+                            print_iq_policy_violations(res.policy_report_results, &parser);
                             print_iq_summary(
                                 CRAB,
                                 style("Aw Crabs! Policy violations exist in your scan.")
@@ -169,6 +174,7 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
                             process::exit(1);
                         }
                         "Warning" => {
+                            print_iq_policy_violations(res.policy_report_results, &parser);
                             print_iq_summary(
                                 CONSTRUCTION,
                                 style("Barnacles! Warnings have been detected in your scan.")
@@ -239,6 +245,54 @@ fn obtain_iq_client(iq_sub_command: &ArgMatches) -> IQClient {
         .unwrap();
 
     return IQClient::new(server.clone(), user, token, stage, application, attempts);
+}
+
+fn print_iq_policy_violations(res: PolicyReportResult, parser: &impl ParseToml) -> () {
+    let policy_violations: Vec<Component> = res
+        .components
+        .clone()
+        .into_iter()
+        .filter(|p| p.violations.as_ref().map_or(false, |v| !v.is_empty()))
+        .collect();
+
+    if policy_violations.len() > 0 {
+        println!(
+            "Components ({}) with policy violations found",
+            policy_violations.len()
+        );
+        println!("");
+
+        for comp in policy_violations {
+            println!("Package URL: {}", comp.package_url);
+            match comp.violations {
+                Some(violations) => {
+                    println!(
+                        "Known violations: {}",
+                        violations
+                            .into_iter()
+                            .map(|v| policy_violation_to_styled_object(v.policy_name).to_string())
+                            .collect::<Vec<String>>()
+                            .join(",")
+                    );
+                    println!("Inverse Dependency graph");
+                    assert!(parser.print_the_graph(comp.package_url).is_ok());
+                    println!("");
+                }
+                None => {}
+            }
+        }
+
+        println!();
+    }
+}
+
+fn policy_violation_to_styled_object(violation: String) -> StyledObject<String> {
+    // TODO: Implement the rest of the violation types to colors?
+    match violation.as_ref() {
+        "Security-Critical" => style(violation).red().bold(),
+        "Security-Medium" => style(violation).yellow().bold(),
+        &_ => style(violation).dim(),
+    }
 }
 
 fn print_iq_summary(

@@ -1,3 +1,17 @@
+// Copyright 2019 Glenn Mohre, Sonatype.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use crate::Vulnerability;
 use std::fmt;
 
@@ -23,30 +37,6 @@ impl Coordinate {
             score = score.max(vulnerability.cvss_score as u8);
         }
         score
-    }
-
-    pub fn get_threat_color(&self) -> Option<ansi_term::Color> {
-        use ansi_term::Color;
-
-        match self.get_threat_score() {
-            9..=10 => Some(Color::Red),
-            7..=8 => Some(Color::Red),
-            4..=6 => Some(Color::Yellow),
-            _ => None,
-        }
-    }
-
-    pub fn get_threat_format(&self) -> ansi_term::Style {
-        use ansi_term::{Color, Style};
-
-        let color: Option<Color> = self.get_threat_color();
-        match color {
-            Some(value) => match self.get_threat_score() {
-                9..=10 => value.bold(),
-                _ => value.normal(),
-            },
-            None => Style::default(),
-        }
     }
 }
 

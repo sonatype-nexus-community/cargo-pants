@@ -1,4 +1,4 @@
-// Copyright 2019 Glenn Mohre.
+// Copyright 2019 Glenn Mohre, Sonatype.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ extern crate url;
 
 #[macro_use]
 extern crate serde_derive;
-extern crate env_logger;
 extern crate log;
 extern crate serde_json;
 
