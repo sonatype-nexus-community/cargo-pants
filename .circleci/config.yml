@@ -42,9 +42,9 @@ jobs:
       - run:
           name: Run all tests
           command: cargo test --all
-      - run:
-          name: Dogfood with locally built Cargo Pants
-          command: ./target/debug/cargo-pants pants
+      # - run:
+      #     name: Dogfood with locally built Cargo Pants
+      #     command: ./target/debug/cargo-pants pants
       - run:
           name: Install Cargo Pants as Cargo Subcommand
           command: cargo install cargo-pants --force
