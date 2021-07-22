@@ -17,91 +17,58 @@ extern crate clap;
 use cargo_pants::ParseCargoToml;
 use cargo_pants::ParseToml;
 use cargo_pants::{client::OSSIndexClient, coordinate::Coordinate};
-use clap::ArgMatches;
-use clap::{App, Arg, SubCommand};
 use console::style;
 use console::StyledObject;
-use log::info;
+use structopt::StructOpt;
 
 use std::io::{stdout, Write};
 use std::{env, io, process};
 
-#[path = "../common.rs"]
+#[path = "../../common.rs"]
 #[macro_use]
 mod common;
 
+mod cli;
+
 fn main() {
-    let matches = App::new("Cargo Pants")
-    .version(crate_version!())
-    .bin_name("cargo")
-    .author("Glenn Mohre <glennmohre@gmail.com>")
-    .about("A library for auditing your cargo dependencies for vulnerabilities and checking your pants")
-    .subcommand(SubCommand::with_name("pants")
-      .arg(Arg::with_name("pants_style")
-        .short("s")
-        .long("pants_style")
-        .takes_value(true)
-        .help("Your pants style"))
-      .arg(Arg::with_name("loud")
-        .short("d")
-        .long("loud")
-        .takes_value(false)
-        .help("Also show non-vulnerable dependencies"))
-      .arg(Arg::with_name("no-color")
-        .short("m")
-        .long("no-color")
-        .takes_value(false)
-        .help("Disable color output"))
-      .arg(common::get_verbose_arg().clone())
-      .arg(common::get_lockfile_arg().clone())
-      .arg(common::get_dev_arg().clone())
-    )
-    .get_matches();
+    let opt = cli::Opt::from_args();
 
-    match matches.subcommand() {
-        ("pants", Some(sub_m)) => {
-            let log_level = common::get_log_level_filter(sub_m);
-
+    match opt {
+        cli::Opt::Pants {
+            toml_file,
+            log_level,
+            include_dev_dependencies,
+            loud,
+            no_color,
+            pants_style,
+            oss_index_api_key,
+        } => {
             common::construct_logger(false, log_level);
 
-            handle_pants_sub_command(sub_m);
+            if let Some(pants_style) = pants_style {
+                check_pants(&pants_style);
+            }
+
+            common::print_dev_dependencies_info(include_dev_dependencies);
+
+            audit(
+                toml_file.to_string_lossy().to_string(),
+                oss_index_api_key,
+                loud,
+                !no_color,
+                include_dev_dependencies,
+            );
         }
-        _ => common::print_no_command_found("pants".to_string()),
     }
 }
 
-fn handle_pants_sub_command(pants_matches: &ArgMatches) {
-    if let Some(pants_style) = pants_matches.value_of("pants_style") {
-        check_pants(pants_style);
-    }
-
-    let toml_file_path = pants_matches.value_of("tomlfile").unwrap();
-    let verbose_output = pants_matches.is_present("loud");
-    let enable_color: bool = !pants_matches.is_present("no-color");
-    let dev: bool = pants_matches.is_present("dev");
-
-    common::print_dev_dependencies_info(dev);
-
-    audit(
-        toml_file_path.to_string(),
-        verbose_output,
-        enable_color,
-        dev,
-    );
-}
-
-fn get_api_key() -> Option<String> {
-    match env::var("OSS_INDEX_API_KEY") {
-        Ok(val) => return Some(val),
-        Err(e) => {
-            info!("Warning: missing optional 'OSS_INDEX_API_KEY': {}", e);
-
-            return None;
-        }
-    };
-}
-
-fn audit(toml_file_path: String, verbose_output: bool, enable_color: bool, include_dev: bool) -> ! {
+fn audit(
+    toml_file_path: String,
+    oss_index_api_key: Option<String>,
+    verbose_output: bool,
+    enable_color: bool,
+    include_dev: bool,
+) -> ! {
     let mut parser = ParseCargoToml::new(toml_file_path.clone(), include_dev);
     let packages = match parser.get_packages() {
         Ok(packages) => packages,
@@ -111,7 +78,13 @@ fn audit(toml_file_path: String, verbose_output: bool, enable_color: bool, inclu
         }
     };
 
-    let api_key: String = get_api_key().unwrap_or_default();
+    let api_key = match oss_index_api_key {
+        Some(oss_index_api_key) => oss_index_api_key,
+        None => {
+            log::info!("Warning: missing optional 'OSS_INDEX_API_KEY'");
+            String::new()
+        }
+    };
 
     let client = OSSIndexClient::new(api_key);
     let mut coordinates: Vec<Coordinate> = Vec::new();
@@ -276,12 +249,6 @@ mod tests {
     use super::*;
     use cargo_pants::TestParseCargoToml;
     use cargo_pants::Vulnerability;
-
-    #[test]
-    fn empty_get_api_key() {
-        let empty_env_value = get_api_key();
-        assert_eq!(empty_env_value.as_deref().unwrap_or(""), "");
-    }
 
     fn setup_test_coordinates() -> (Vec<Coordinate>, u32) {
         let mut coordinates: Vec<Coordinate> = Vec::new();

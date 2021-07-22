@@ -28,6 +28,7 @@ use clap::{App, Arg, SubCommand};
 use console::StyledObject;
 use console::{style, Emoji};
 use indicatif::{ProgressBar, ProgressStyle};
+use log::LevelFilter;
 use log::{debug, error, trace};
 use std::{env, process};
 use term_table::row::Row;
@@ -86,15 +87,15 @@ fn main() {
         .takes_value(true)
         .default_value("60")
         .help("Specify Nexus IQ attempts in seconds"))
-    .arg(common::get_verbose_arg().clone())
-    .arg(common::get_lockfile_arg().clone())
-    .arg(common::get_dev_arg().clone())
+    .arg(get_verbose_arg().clone())
+    .arg(get_lockfile_arg().clone())
+    .arg(get_dev_arg().clone())
     )
     .get_matches();
 
     match matches.subcommand() {
         ("iq", Some(sub_m)) => {
-            let log_level = common::get_log_level_filter(sub_m);
+            let log_level = get_log_level_filter(sub_m);
 
             common::banner(crate_name!().to_string(), crate_version!().to_string());
 
@@ -102,7 +103,7 @@ fn main() {
 
             handle_iq_sub_command(sub_m);
         }
-        _ => common::print_no_command_found("iq".to_string()),
+        _ => print_no_command_found("iq".to_string()),
     }
 }
 
@@ -223,6 +224,46 @@ fn handle_iq_sub_command(iq_sub_command: &ArgMatches) {
             process::exit(1);
         }
     }
+}
+
+pub fn get_lockfile_arg() -> Arg<'static, 'static> {
+    return Arg::with_name("tomlfile")
+        .long("tomlfile")
+        .takes_value(true)
+        .help("The path to your Cargo.toml file")
+        .default_value(common::CARGO_DEFAULT_TOMLFILE);
+}
+
+pub fn get_dev_arg() -> Arg<'static, 'static> {
+    return Arg::with_name("dev")
+        .long("dev")
+        .help("A flag to include dev dependencies");
+}
+
+pub fn get_verbose_arg() -> Arg<'static, 'static> {
+    return Arg::with_name("verbose")
+        .short("v")
+        .takes_value(false)
+        .multiple(true)
+        .help("Set the verbosity of the logger, more is more verbose, so -Lvov is more verbose than -v");
+}
+
+pub fn print_no_command_found(sub_command_name: String) {
+    println!("Error, this tool is designed to be executed from cargo itself.");
+    println!(
+        "Therefore at least the command line parameter '{}' must be provided.",
+        sub_command_name
+    );
+}
+
+pub fn get_log_level_filter(matches: &ArgMatches) -> LevelFilter {
+    match matches.occurrences_of("verbose") {
+        1 => return LevelFilter::Warn,
+        2 => return LevelFilter::Info,
+        3 => return LevelFilter::Debug,
+        4 => return LevelFilter::Trace,
+        _ => return LevelFilter::Error,
+    };
 }
 
 fn handle_packages(packages: Vec<Package>) -> String {
