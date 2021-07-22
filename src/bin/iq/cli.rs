@@ -15,10 +15,38 @@ pub enum Opt {
         about = "A library for auditing your cargo dependencies for vulnerabilities and checking your pants",
         author = "Glenn Mohre <glennmohre@gmail.com>"
     )]
-    Pants {
+    Iq {
         /// The path to your Cargo.toml file
         #[structopt(long = "tomlfile", default_value = common::CARGO_DEFAULT_TOMLFILE)]
         toml_file: PathBuf,
+
+        /// Specify Nexus IQ server url for request
+        #[structopt(
+            short = "x",
+            long = "iq-server-url",
+            default_value = "http://localhost:8070"
+        )]
+        server_url: String,
+
+        /// Specify Nexus IQ public application ID for request
+        #[structopt(short = "a", long = "iq-application")]
+        application: String,
+
+        /// Specify Nexus IQ username for request
+        #[structopt(short = "l", long = "iq-username", default_value = "admin")]
+        username: String,
+
+        /// Specify Nexus IQ token for request
+        #[structopt(short = "k", long = "iq-token", default_value = "admin123", env)]
+        token: String,
+
+        /// Specify Nexus IQ stage for request
+        #[structopt(short = "s", long = "iq-stage", default_value = "develop")]
+        stage: String,
+
+        /// Specify Nexus IQ attempts in seconds
+        #[structopt(short = "t", long = "iq-attempts", default_value = "60")]
+        attempts: u32,
 
         /// Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v
         #[structopt(short = "v", long = "verbose", parse(from_occurrences = parse_log_level))]
@@ -27,22 +55,6 @@ pub enum Opt {
         /// A flag to include dev dependencies
         #[structopt(long = "dev")]
         include_dev_dependencies: bool,
-
-        /// Also show non-vulnerable dependencies
-        #[structopt(short = "d", long = "loud")]
-        loud: bool,
-
-        /// Disable color output
-        #[structopt(short = "m", long = "no-color")]
-        no_color: bool,
-
-        /// Your pants style
-        #[structopt(short = "s", long = "pants_style")]
-        pants_style: Option<String>,
-
-        /// OSS Index API Key
-        #[structopt(long = "ossi-api-key", env, hide_env_values = true)]
-        oss_index_api_key: Option<String>,
     },
 }
 

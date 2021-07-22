@@ -11,8 +11,6 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-#[macro_use]
-extern crate clap;
 
 use cargo_pants::ParseCargoToml;
 use cargo_pants::ParseToml;
@@ -105,7 +103,10 @@ fn audit(
 
     let mut stdout = stdout();
     if verbose_output {
-        common::banner(crate_name!().to_string(), crate_version!().to_string());
+        common::banner(
+            env!("CARGO_BIN_NAME").to_string(),
+            env!("CARGO_PKG_VERSION").to_string(),
+        );
 
         write_package_output(
             &mut stdout,

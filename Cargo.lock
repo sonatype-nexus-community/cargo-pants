@@ -125,7 +125,6 @@ name = "cargo-pants"
 version = "0.2.2"
 dependencies = [
  "cargo_metadata",
- "clap",
  "console",
  "dirs",
  "env_logger",
