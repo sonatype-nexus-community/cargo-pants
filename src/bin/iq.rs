@@ -15,8 +15,6 @@
 #[macro_use]
 extern crate clap;
 
-use term_table::table_cell::TableCell;
-use term_table::row::Row;
 use cargo_pants::iq::Component;
 use cargo_pants::iq::OpenPolicyViolations;
 use cargo_pants::iq::PolicyReportResult;
@@ -32,6 +30,8 @@ use console::{style, Emoji};
 use indicatif::{ProgressBar, ProgressStyle};
 use log::{debug, error, trace};
 use std::{env, process};
+use term_table::row::Row;
+use term_table::table_cell::TableCell;
 
 #[path = "../common.rs"]
 mod common;
@@ -317,19 +317,31 @@ fn generate_summary_table(policy_violations: OpenPolicyViolations) -> () {
     table.style = term_table::TableStyle::rounded();
     table.add_row(Row::new(vec![
         TableCell::new(style("Policy Violation Type").bold()),
-        TableCell::new(style("Total").bold())
+        TableCell::new(style("Total").bold()),
     ]));
     table.add_row(Row::new(vec![
         TableCell::new(style("Critical").red().bold()),
-        TableCell::new_with_alignment(policy_violations.critical, 1, term_table::table_cell::Alignment::Right)
+        TableCell::new_with_alignment(
+            policy_violations.critical,
+            1,
+            term_table::table_cell::Alignment::Right,
+        ),
     ]));
     table.add_row(Row::new(vec![
         TableCell::new(style("CVSS Score").yellow().bold()),
-        TableCell::new_with_alignment(policy_violations.severe, 1, term_table::table_cell::Alignment::Right)
+        TableCell::new_with_alignment(
+            policy_violations.severe,
+            1,
+            term_table::table_cell::Alignment::Right,
+        ),
     ]));
     table.add_row(Row::new(vec![
         TableCell::new(style("Moderate").cyan().bold()),
-        TableCell::new_with_alignment(policy_violations.moderate, 1, term_table::table_cell::Alignment::Right)
+        TableCell::new_with_alignment(
+            policy_violations.moderate,
+            1,
+            term_table::table_cell::Alignment::Right,
+        ),
     ]));
 
     println!("{}", table.render());
