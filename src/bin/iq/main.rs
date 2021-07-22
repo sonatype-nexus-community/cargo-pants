@@ -102,7 +102,7 @@ fn main() {
                         IQClient::new(server_url, username, token, stage, application, attempts);
                     match iq.audit_with_iq_server(sbom) {
                         Ok(res) => {
-                            trace!("Response recieved: {:#?}", res.url_results);
+                            trace!("Response received: {:#?}", res.url_results);
 
                             if res.url_results.is_error {
                                 panic!("{}", res.url_results.error_message.unwrap());
