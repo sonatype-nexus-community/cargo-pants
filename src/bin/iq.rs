@@ -265,7 +265,10 @@ fn print_iq_policy_violations(res: PolicyReportResult, parser: &impl ParseToml) 
         .collect();
 
     if policy_violations.len() > 0 {
-        println!("Components ({}) with policy violations found", policy_violations.len());
+        println!(
+            "Components ({}) with policy violations found",
+            policy_violations.len()
+        );
         println!("");
 
         for comp in policy_violations {
@@ -287,7 +290,7 @@ fn print_iq_policy_violations(res: PolicyReportResult, parser: &impl ParseToml) 
                 None => {}
             }
         }
-    
+
         println!();
     }
 }
