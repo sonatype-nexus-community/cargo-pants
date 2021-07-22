@@ -174,12 +174,8 @@ impl ParseToml for ParseCargoToml {
             self.deps_add_queue.push_back(pkg_id.clone());
         }
 
-        match self.parse_dependencies(metadata.clone(), resolve.clone()) {
-            Ok(()) => {
-                return Ok(self.packages.clone());
-            }
-            Err(e) => return Err(e),
-        };
+        self.parse_dependencies(metadata.clone(), resolve.clone())
+            .map(|_| self.packages.clone())
     }
 
     fn print_the_graph(&self, purl: String) -> Result<(), Error> {
