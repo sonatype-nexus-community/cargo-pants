@@ -270,10 +270,7 @@ fn print_iq_policy_violations(res: PolicyReportResult, parser: &impl ParseToml) 
                         "Known violations: {}",
                         violations
                             .into_iter()
-                            .map(
-                                |v| policy_violation_to_styled_object(v.policy_name as String)
-                                    .to_string()
-                            )
+                            .map(|v| policy_violation_to_styled_object(v.policy_name).to_string())
                             .collect::<Vec<String>>()
                             .join(",")
                     );
