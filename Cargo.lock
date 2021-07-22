@@ -148,7 +148,6 @@ name = "cargo-pants"
 version = "0.2.2"
 dependencies = [
  "ansi_term 0.12.1",
- "atty",
  "cargo-tree",
  "cargo_metadata 0.13.1",
  "chrono",
@@ -157,7 +156,6 @@ dependencies = [
  "console",
  "dirs",
  "env_logger",
- "http",
  "indicatif",
  "log",
  "log4rs",
@@ -172,7 +170,6 @@ dependencies = [
  "terminal_size",
  "textwrap 0.13.4",
  "thiserror",
- "toml",
  "url 1.7.2",
 ]
 
@@ -1635,15 +1632,6 @@ dependencies = [
  "log",
  "pin-project-lite",
  "tokio",
-]
-
-[[package]]
-name = "toml"
-version = "0.4.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "758664fc71a3a69038656bee8b6be6477d2a6c315a6b81f7081f591bffa4111f"
-dependencies = [
- "serde",
 ]
 
 [[package]]

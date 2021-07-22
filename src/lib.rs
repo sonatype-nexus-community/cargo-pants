@@ -18,7 +18,6 @@ extern crate url;
 
 #[macro_use]
 extern crate serde_derive;
-extern crate env_logger;
 extern crate log;
 extern crate serde_json;
 
