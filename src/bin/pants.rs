@@ -221,7 +221,7 @@ fn write_package_output(
             for vulnerability in &coordinate.vulnerabilities {
                 if !vulnerability.title.is_empty() {
                     vulnerability
-                        .output_table(enable_color, width_override)
+                        .output_table(output, enable_color, width_override)
                         .expect("Unable to output Vulnerability details");
                     writeln!(output, "\n")?;
                 }
