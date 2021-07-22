@@ -193,7 +193,7 @@ fn write_package_output(
                 "[{}/{}] {}",
                 index + 1,
                 package_count,
-                get_purl_color(vulnerable, coordinate.purl.clone())
+                style_purl(vulnerable, coordinate.purl.clone())
             )?;
         } else {
             writeln!(
@@ -235,10 +235,10 @@ fn write_package_output(
     Ok(())
 }
 
-fn get_purl_color(vulnerable: bool, val: String) -> StyledObject<String> {
+fn style_purl(vulnerable: bool, purl: String) -> StyledObject<String> {
     match vulnerable {
-        true => style(val).red().bold(),
-        false => style(val).green(),
+        true => style(purl).red().bold(),
+        false => style(purl).green(),
     }
 }
 
