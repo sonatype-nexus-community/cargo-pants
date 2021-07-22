@@ -112,7 +112,7 @@ fn main() {
                                 "{}{}",
                                 CRAB, "Nexus IQ Results obtained"
                             ));
-                            println!("");
+                            println!();
 
                             match res.url_results.policy_action.as_ref() {
                                 "Failure" => {
@@ -211,7 +211,7 @@ fn print_iq_policy_violations(res: PolicyReportResult, parser: &impl ParseToml) 
             "Components ({}) with policy violations found",
             policy_violations.len()
         );
-        println!("");
+        println!();
 
         for comp in policy_violations {
             println!("Package URL: {}", comp.package_url);
@@ -227,7 +227,7 @@ fn print_iq_policy_violations(res: PolicyReportResult, parser: &impl ParseToml) 
                     );
                     println!("Inverse Dependency graph");
                     assert!(parser.print_the_graph(comp.package_url).is_ok());
-                    println!("");
+                    println!();
                 }
                 None => {}
             }
@@ -254,9 +254,9 @@ fn print_iq_summary(
     html_url: String,
 ) {
     println!("{}{}", emoji, summary_line);
-    println!("");
+    println!();
     generate_summary_table(policy_violations);
-    println!("");
+    println!();
     println!("{}{}/{}", style("Report URL: ").dim(), server, html_url);
 }
 
