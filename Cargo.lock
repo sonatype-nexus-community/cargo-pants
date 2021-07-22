@@ -164,7 +164,6 @@ dependencies = [
  "mockito",
  "packageurl",
  "petgraph 0.5.1",
- "ptree",
  "quick-xml",
  "reqwest",
  "serde",
@@ -1124,15 +1123,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0d8caf72986c1a598726adc988bb5984792ef84f5ee5aa50209145ee8077038"
 dependencies = [
  "unicode-xid",
-]
-
-[[package]]
-name = "ptree"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "beb17280503804146233f15c98385d3c65f0330663ce0b602a1e4c9379e96b4d"
-dependencies = [
- "serde",
 ]
 
 [[package]]
