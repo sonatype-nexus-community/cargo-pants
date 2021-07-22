@@ -264,27 +264,32 @@ fn print_iq_policy_violations(res: PolicyReportResult, parser: &impl ParseToml) 
         })
         .collect();
 
-    for comp in policy_violations {
-        println!("Package URL: {}", comp.package_url);
-        match comp.violations {
-            Some(violations) => {
-                println!(
-                    "\tKnown violations: {}",
-                    violations
-                        .into_iter()
-                        .map(|v| v.policy_name as String)
-                        .collect::<Vec<String>>()
-                        .join(",")
-                );
-                println!("\tInverse Dependency graph");
-                assert!(parser.print_the_graph(comp.package_url).is_ok());
-                println!("");
-            }
-            None => {}
-        }
-    }
+    if policy_violations.len() > 0 {
+        println!("Components ({}) with policy violations found", policy_violations.len());
+        println!("");
 
-    println!();
+        for comp in policy_violations {
+            println!("Package URL: {}", comp.package_url);
+            match comp.violations {
+                Some(violations) => {
+                    println!(
+                        "\tKnown violations: {}",
+                        violations
+                            .into_iter()
+                            .map(|v| v.policy_name as String)
+                            .collect::<Vec<String>>()
+                            .join(",")
+                    );
+                    println!("\tInverse Dependency graph");
+                    assert!(parser.print_the_graph(comp.package_url).is_ok());
+                    println!("");
+                }
+                None => {}
+            }
+        }
+    
+        println!();
+    }
 }
 
 fn print_iq_summary(
