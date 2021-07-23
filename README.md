@@ -74,15 +74,7 @@ OPTIONS:
         --tomlfile <toml-file>                The path to your Cargo.toml file [default: Cargo.toml]
 ```
 
-`cargo pants` can be run in your builds context, or ran separately. Two command line options are supported:
-
-```
-$ cargo pants --lockfile /path/to/Cargo.lock
-```
-
-This allows you to run `cargo pants` on a `Cargo.lock` file anywhere on your filesystem.
-
-If this option is not supplied, `cargo pants` will assume a local `Cargo.lock` file.
+`cargo pants` can be run in your builds context, or ran separately.
 
 We will also inform you of our opinions of your pants style choice:
 
@@ -95,15 +87,14 @@ We are very serious about pants.
 There are also two command line flags that affect the output further:
 
 ```
-$ cargo pants --loud --lockfile /path/to/Cargo.lock
+$ cargo pants --loud
 ```
 This shows all non-vulnerable dependencies for a complete Bill of Materials.
 
 ```
-$ cargo pants --no-color --lockfile /path/to/Cargo.lock
+$ cargo pants --no-color
 ```
 This disables any coloring of the output.
-
 
 If vulnerabilities are found, `cargo-pants` exits with status code 3, and prints the Bill Of Materials/Found Vulnerabilities. If there are no issues, it will exit with status code 0.
 
