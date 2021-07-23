@@ -282,7 +282,7 @@ fn generate_summary_table(policy_violations: OpenPolicyViolations) -> () {
         ),
     ]));
     table.add_row(Row::new(vec![
-        TableCell::new(style("CVSS Score").yellow().bold()),
+        TableCell::new(style("Severe").yellow().bold()),
         TableCell::new_with_alignment(
             policy_violations.severe,
             1,
