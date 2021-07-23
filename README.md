@@ -52,6 +52,28 @@ $ cargo pants
 
 ## Usage
 
+```
+cargo-pants 0.3.1
+Glenn Mohre <glennmohre@gmail.com>
+A library for auditing your cargo dependencies for vulnerabilities and checking your pants
+
+USAGE:
+    cargo pants [FLAGS] [OPTIONS]
+
+FLAGS:
+    -h, --help        Prints help information
+        --dev         A flag to include dev dependencies
+    -v, --verbose     Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v
+    -d, --loud        Also show non-vulnerable dependencies
+    -m, --no-color    Disable color output
+    -V, --version     Prints version information
+
+OPTIONS:
+        --ossi-api-key <oss-index-api-key>    OSS Index API Key [env: OSS_INDEX_API_KEY]
+    -s, --pants_style <pants-style>           Your pants style
+        --tomlfile <toml-file>                The path to your Cargo.toml file [default: Cargo.toml]
+```
+
 `cargo pants` can be run in your builds context, or ran separately. Two command line options are supported:
 
 ```
@@ -90,24 +112,27 @@ If vulnerabilities are found, `cargo-pants` exits with status code 3, and prints
 More TBD, but experimental usage for Nexus IQ Server now exists:
 
 ```
-cargo-iq
+cargo-iq 0.3.1
+Glenn Mohre <glennmohre@gmail.com>
+A library for auditing your cargo dependencies for vulnerabilities and checking your pants
 
 USAGE:
-    cargo iq [FLAGS] [OPTIONS] --iq-application <iq-application>
+    cargo iq [FLAGS] [OPTIONS] --iq-application <application>
 
 FLAGS:
     -h, --help       Prints help information
+        --dev        A flag to include dev dependencies
+    -v, --verbose    Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v
     -V, --version    Prints version information
-    -v               Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v
 
 OPTIONS:
-    -a, --iq-application <iq-application>    Specify Nexus IQ public application ID for request
-    -t, --iq-attempts <iq-attempts>          Specify Nexus IQ attempts in seconds [default: 60]
-    -x, --iq-server-url <iq-server-url>      Specify Nexus IQ server url for request [default: http://localhost:8070]
-    -s, --iq-stage <iq-stage>                Specify Nexus IQ stage for request [default: develop]
-    -k, --iq-token <iq-token>                Specify Nexus IQ token for request [default: admin123]
-    -l, --iq-username <iq-username>          Specify Nexus IQ username for request [default: admin]
-        --tomlfile <tomlfile>                The path to your Cargo.toml file [default: Cargo.toml]
+    -a, --iq-application <application>    Specify Nexus IQ public application ID for request
+    -t, --iq-attempts <attempts>          Specify Nexus IQ attempts in seconds [default: 60]
+    -x, --iq-server-url <server-url>      Specify Nexus IQ server url for request [default: http://localhost:8070]
+    -s, --iq-stage <stage>                Specify Nexus IQ stage for request [default: develop]
+    -k, --iq-token <token>                Specify Nexus IQ token for request [env: TOKEN=]  [default: admin123]
+        --tomlfile <toml-file>            The path to your Cargo.toml file [default: Cargo.toml]
+    -l, --iq-username <username>          Specify Nexus IQ username for request [default: admin]
 ```
 
 ## CI Usage
