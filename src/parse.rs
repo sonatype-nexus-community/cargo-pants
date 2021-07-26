@@ -278,7 +278,11 @@ fn print_package<'a>(
         Prefix::Indent => {
             if let Some((last_continues, rest)) = levels_continue.split_last() {
                 for continues in rest {
-                    let c = if *continues { String::from(symbols.down) } else { String::from(" ") };
+                    let c = if *continues {
+                        String::from(symbols.down)
+                    } else {
+                        String::from(" ")
+                    };
                     print!("{}   ", c);
                 }
 
