@@ -179,7 +179,12 @@ impl ParseToml for ParseCargoToml {
     }
 
     fn print_the_graph(&self, purl: String) -> Result<(), Error> {
-        let symbols = &UTF8_SYMBOLS;
+        let symbols: &Symbols;
+        if cfg!(windows) {
+            symbols = &ASCII_SYMBOLS;
+        } else {
+            symbols = &UTF8_SYMBOLS;
+        }
 
         let prefix = Prefix::Indent;
 
