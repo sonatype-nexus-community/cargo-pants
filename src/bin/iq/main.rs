@@ -268,7 +268,12 @@ fn generate_summary_table(policy_violations: OpenPolicyViolations) -> () {
 
     let mut table = term_table::Table::new();
 
-    table.style = term_table::TableStyle::rounded();
+    if cfg!(windows) {
+        table.style = term_table::TableStyle::simple();
+    } else {
+        table.style = term_table::TableStyle::rounded();
+    }
+
     table.add_row(Row::new(vec![
         TableCell::new(style("Policy Violation Type").bold()),
         TableCell::new(style("Total").bold()),
