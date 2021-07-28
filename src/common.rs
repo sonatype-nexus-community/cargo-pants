@@ -54,7 +54,7 @@ pub fn parse_log_level(verbosity: u64) -> LevelFilter {
         3 => LevelFilter::Debug,
         4 => LevelFilter::Trace,
         _ => LevelFilter::Error,
-    }
+    };
 }
 
 pub fn construct_logger(iq: bool, log_level_filter: LevelFilter) {

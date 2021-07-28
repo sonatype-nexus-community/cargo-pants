@@ -40,11 +40,7 @@ pub use crate::{
 
 pub fn calculate_term_width() -> u16 {
     return match terminal_size() {
-        Some((Width(w), Height(_h))) => {
-            w
-        }
-        None => {
-            80
-        }
-    }
+        Some((Width(w), Height(_h))) => w,
+        None => 80,
+    };
 }

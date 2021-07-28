@@ -339,7 +339,7 @@ impl IQClient {
                     Ok(combined_results)
                 } else {
                     Err(Box::new(GeneralError(data.unwrap_err().to_string())))
-                }
+                };
             }
             if result.is_err() {
                 let res_err = result.unwrap_err();
