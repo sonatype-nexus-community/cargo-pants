@@ -44,16 +44,16 @@ pub fn print_dev_dependencies_info(dev: bool) {
     } else {
         println!("Scanning only runtime dependencies for project (use --dev to include all dependencies)");
     }
-    println!("");
+    println!();
 }
 
 pub fn parse_log_level(verbosity: u64) -> LevelFilter {
-    match verbosity {
-        1 => return LevelFilter::Warn,
-        2 => return LevelFilter::Info,
-        3 => return LevelFilter::Debug,
-        4 => return LevelFilter::Trace,
-        _ => return LevelFilter::Error,
+    return match verbosity {
+        1 => LevelFilter::Warn,
+        2 => LevelFilter::Info,
+        3 => LevelFilter::Debug,
+        4 => LevelFilter::Trace,
+        _ => LevelFilter::Error,
     }
 }
 
@@ -81,8 +81,8 @@ pub fn construct_logger(iq: bool, log_level_filter: LevelFilter) {
 
     let _handle = log4rs::init_config(config).unwrap();
 
-    println!("");
+    println!();
     println!("Log Level set to: {}", log_level_filter);
     println!("Logging to: {:?}", full_log_location.clone());
-    println!("");
+    println!();
 }

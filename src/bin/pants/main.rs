@@ -203,7 +203,7 @@ fn write_package_output(
 
             println!("Inverse Dependency graph");
             assert!(parser.print_the_graph(coordinate.purl.clone()).is_ok());
-            println!("");
+            println!();
         }
     }
     Ok(())
