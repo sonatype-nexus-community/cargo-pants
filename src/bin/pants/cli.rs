@@ -24,6 +24,7 @@ use structopt::StructOpt;
     author = "Glenn Mohre <glennmohre@gmail.com>",
     bin_name = "cargo" // required to make help documentation match running as a cargo subcommand
 )]
+
 pub enum Opt {
     #[structopt(
         about = "A library for auditing your cargo dependencies for vulnerabilities and checking your pants",
@@ -59,7 +60,7 @@ pub enum Opt {
         oss_index_api_key: Option<String>,
 
         /// The path to your .pants-ignore file
-        #[structopt(long = "ignore-file", default_value = common::PANTS_IGNORE)]
+        #[structopt(long = "ignore-file", default_value = ".pants-ignore")]
         ignore_file: PathBuf,
     },
 }

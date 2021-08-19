@@ -32,7 +32,6 @@ macro_rules! ternary {
 }
 
 pub static CARGO_DEFAULT_TOMLFILE: &str = "Cargo.toml";
-pub static PANTS_IGNORE: &str = ".pants-ignore";
 
 pub fn banner(name: String, version: String) {
     println!("{}", std::include_str!("banner.txt"));
