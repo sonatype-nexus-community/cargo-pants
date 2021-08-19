@@ -18,10 +18,10 @@ use cargo_pants::ParseToml;
 use cargo_pants::{client::OSSIndexClient, coordinate::Coordinate};
 use console::style;
 use console::StyledObject;
-use std::path::PathBuf;
 use structopt::StructOpt;
 
 use std::io::{stdout, Write};
+use std::path::PathBuf;
 use std::{env, io, process};
 
 #[path = "../../common.rs"]
@@ -99,9 +99,8 @@ fn audit(
     let mut vulnerable_package_count: u32 = 0;
 
     // Ignore vulns
-    match ignore_file {
-        Some(file_path) => filter_vulnerabilities(&mut coordinates, file_path),
-        _ => (),
+    if let Some(ignore_file) = ignore_file {
+        filter_vulnerabilities(&mut coordinates, ignore_file);
     }
 
     for coordinate in &coordinates {
