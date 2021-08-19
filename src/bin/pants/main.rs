@@ -70,7 +70,7 @@ fn audit(
     verbose_output: bool,
     enable_color: bool,
     include_dev: bool,
-    ignore_file: Option<PathBuf>,
+    ignore_file: PathBuf,
 ) -> ! {
     let mut parser = ParseCargoToml::new(toml_file_path.clone(), include_dev);
     let packages = match parser.get_packages() {
@@ -99,9 +99,7 @@ fn audit(
     let mut vulnerable_package_count: u32 = 0;
 
     // Ignore vulns
-    if let Some(ignore_file) = ignore_file {
-        filter_vulnerabilities(&mut coordinates, ignore_file);
-    }
+    filter_vulnerabilities(&mut coordinates, ignore_file);
 
     for coordinate in &coordinates {
         if coordinate.has_vulnerabilities() {

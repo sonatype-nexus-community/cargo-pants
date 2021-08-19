@@ -25,6 +25,7 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
+use log::{trace};
 use terminal_size::{terminal_size, Height, Width};
 
 pub mod client;
@@ -67,20 +68,26 @@ pub struct Ignore {
 }
 
 pub fn filter_vulnerabilities(packages: &mut Vec<Coordinate>, exclude_vuln_file_path: PathBuf) {
-    let exclude_file = File::open(exclude_vuln_file_path).expect("Unable to read file");
-    let exclude_reader = BufReader::new(exclude_file);
-    let filter_list_json: FilterList =
-        serde_json::from_reader(exclude_reader).expect("JSON was not well formatted");
-
-    let ignored_ids: HashSet<String> = filter_list_json
-        .ignore
-        .into_iter()
-        .map(|filter| filter.id)
-        .collect();
-
-    packages.iter_mut().for_each(|p| {
-        if p.has_vulnerabilities() {
-            p.vulnerabilities.retain(|v| !ignored_ids.contains(&v.id))
+    match File::open(exclude_vuln_file_path) {
+        Ok(file) => {
+            let exclude_reader = BufReader::new(file);
+            let filter_list_json: FilterList =
+                serde_json::from_reader(exclude_reader).expect("JSON was not well formatted");
+        
+            let ignored_ids: HashSet<String> = filter_list_json
+                .ignore
+                .into_iter()
+                .map(|filter| filter.id)
+                .collect();
+        
+            packages.iter_mut().for_each(|p| {
+                if p.has_vulnerabilities() {
+                    p.vulnerabilities.retain(|v| !ignored_ids.contains(&v.id))
+                }
+            });
+        },
+        Err(err) => {
+            trace!("No file found at location provided: {}", err.to_string())
         }
-    });
+    }
 }
