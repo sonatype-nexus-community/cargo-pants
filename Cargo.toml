@@ -1,5 +1,3 @@
-cargo-features = ["rust-version"]
-
 [package]
 name = "cargo-pants"
 version = "0.3.2"
