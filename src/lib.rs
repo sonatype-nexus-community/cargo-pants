@@ -83,9 +83,9 @@ pub fn filter_vulnerabilities(packages: &mut Vec<Coordinate>, exclude_vuln_file_
             let old_vulns = &packages[i].vulnerabilities;
             old_vulns.into_iter().all(|vuln| {
                 if !ids.contains(&vuln.id) {
-                    vulns.push(vuln.clone());
                     return true;
                 } else {
+                    vulns.push(vuln.clone());
                     return false;
                 }
             });
