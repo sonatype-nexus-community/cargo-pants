@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::path::PathBuf;
 use cargo_pants::filter_vulnerabilities;
 use cargo_pants::ParseCargoToml;
 use cargo_pants::ParseToml;
 use cargo_pants::{client::OSSIndexClient, coordinate::Coordinate};
 use console::style;
 use console::StyledObject;
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 use std::io::{stdout, Write};
@@ -42,7 +42,7 @@ fn main() {
             no_color,
             pants_style,
             oss_index_api_key,
-            ignore_file
+            ignore_file,
         } => {
             common::construct_logger(false, log_level);
 
@@ -58,7 +58,7 @@ fn main() {
                 loud,
                 !no_color,
                 include_dev_dependencies,
-                ignore_file
+                ignore_file,
             );
         }
     }
@@ -70,7 +70,7 @@ fn audit(
     verbose_output: bool,
     enable_color: bool,
     include_dev: bool,
-    ignore_file: Option<PathBuf>
+    ignore_file: Option<PathBuf>,
 ) -> ! {
     let mut parser = ParseCargoToml::new(toml_file_path.clone(), include_dev);
     let packages = match parser.get_packages() {
@@ -101,7 +101,7 @@ fn audit(
     // Ignore vulns
     match ignore_file {
         Some(file_path) => filter_vulnerabilities(&mut coordinates, file_path),
-        _ => ()
+        _ => (),
     }
 
     for coordinate in &coordinates {

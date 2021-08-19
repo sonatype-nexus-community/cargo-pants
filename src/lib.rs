@@ -21,8 +21,8 @@ extern crate serde_derive;
 extern crate log;
 extern crate serde_json;
 
-use std::io::BufReader;
 use std::fs::File;
+use std::io::BufReader;
 use std::path::PathBuf;
 use terminal_size::{terminal_size, Height, Width};
 
@@ -68,13 +68,18 @@ pub struct Ignore {
 pub fn filter_vulnerabilities(packages: &mut Vec<Coordinate>, exclude_vuln_file_path: PathBuf) {
     let file = File::open(exclude_vuln_file_path).expect("Unable to open file");
     let reader = BufReader::new(file);
-    let filter_list_json: FilterList = serde_json::from_reader(reader).expect("JSON was not well formatted");
+    let filter_list_json: FilterList =
+        serde_json::from_reader(reader).expect("JSON was not well formatted");
 
-    let ids = filter_list_json.ignore.into_iter().map(|filter| filter.id ).collect::<Vec<String>>();
+    let ids = filter_list_json
+        .ignore
+        .into_iter()
+        .map(|filter| filter.id)
+        .collect::<Vec<String>>();
 
     for i in (0..packages.len()).rev() {
         if packages[i].has_vulnerabilities() {
-            let mut vulns: Vec<Vulnerability> = vec!();
+            let mut vulns: Vec<Vulnerability> = vec![];
             let old_vulns = &packages[i].vulnerabilities;
             old_vulns.into_iter().all(|vuln| {
                 if !ids.contains(&vuln.id) {
@@ -88,4 +93,3 @@ pub fn filter_vulnerabilities(packages: &mut Vec<Coordinate>, exclude_vuln_file_
         }
     }
 }
-
