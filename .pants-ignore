@@ -1,0 +1,8 @@
+{
+  "ignore": [
+    { 
+      "id": "e3f310ed-219c-4087-aa58-8425b13c3ec5", 
+      "reason": "postcss @ 7.x all have this vulnerability, and many dependencies require v7.x, so ignoring for now." 
+    }
+  ]
+}

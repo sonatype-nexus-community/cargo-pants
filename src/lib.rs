@@ -78,25 +78,9 @@ pub fn filter_vulnerabilities(packages: &mut Vec<Coordinate>, exclude_vuln_file_
         .map(|filter| filter.id)
         .collect();
 
-<<<<<<< HEAD
-    for i in (0..packages.len()).rev() {
-        if packages[i].has_vulnerabilities() {
-            let mut vulns: Vec<Vulnerability> = vec![];
-            let old_vulns = &packages[i].vulnerabilities;
-            old_vulns.into_iter().all(|vuln| {
-                if !ids.contains(&vuln.id) {
-                    return true;
-                } else {
-                    vulns.push(vuln.clone());
-                    return false;
-                }
-            });
-            packages[i].vulnerabilities = vulns;
-=======
     packages.iter_mut().for_each(|p| {
         if p.has_vulnerabilities() {
             p.vulnerabilities.retain(|v| !ignored_ids.contains(&v.id))
->>>>>>> e4fc1e8aa95f02ac75f26cbdde6226bf58d76457
         }
     });
 }
