@@ -21,6 +21,7 @@ extern crate serde_derive;
 extern crate log;
 extern crate serde_json;
 
+use std::path::PathBuf;
 use terminal_size::{terminal_size, Height, Width};
 use std::fs;
 
@@ -63,7 +64,7 @@ pub struct Ignore {
     pub reason: Option<String>,
 }
 
-pub fn filter_vulnerabilities(packages: &mut Vec<Coordinate>, exclude_vuln_file_path: String) {
+pub fn filter_vulnerabilities(packages: &mut Vec<Coordinate>, exclude_vuln_file_path: PathBuf) {
     let filter_list_str = fs::read_to_string(exclude_vuln_file_path).expect("Unable to read file");
     let filter_list_json: FilterList = serde_json::from_str(&filter_list_str).expect("JSON was not well formatted");
 

@@ -60,6 +60,6 @@ pub enum Opt {
 
         // Ignore file
         #[structopt(short = "i", long = "ignore-file")]
-        ignore_file: Option<String>,
+        ignore_file: Option<PathBuf>,
     },
 }

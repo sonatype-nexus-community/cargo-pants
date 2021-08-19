@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::path::PathBuf;
 use cargo_pants::filter_vulnerabilities;
 use cargo_pants::ParseCargoToml;
 use cargo_pants::ParseToml;
@@ -69,7 +70,7 @@ fn audit(
     verbose_output: bool,
     enable_color: bool,
     include_dev: bool,
-    ignore_file: Option<String>
+    ignore_file: Option<PathBuf>
 ) -> ! {
     let mut parser = ParseCargoToml::new(toml_file_path.clone(), include_dev);
     let packages = match parser.get_packages() {
