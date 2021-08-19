@@ -33,10 +33,10 @@ jobs:
           key: cargo-pants-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
       - run:
           name: Check formatting
-          command: cargo fmt -- --check
+          command: rustup run nightly cargo fmt -- --check
       - run:
           name: Build all targets
-          command: cargo build --all --all-targets
+          command: rustup run nightly cargo build --all --all-targets
       - save_cache:
           key: cargo-pants-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
           paths:
@@ -44,13 +44,13 @@ jobs:
             - "./target"
       - run:
           name: Run all tests
-          command: cargo test --all
+          command: rustup run nightly cargo test --all
       - run:
           name: Dogfood with locally built Cargo Pants
           command: ./target/debug/cargo-pants pants
       - run:
           name: Install Cargo Pants as Cargo Subcommand
-          command: cargo install cargo-pants --force
+          command: rustup run nightly cargo install cargo-pants --force
       - run:
           name: Dogfood Cargo Pants
           command: cargo pants
