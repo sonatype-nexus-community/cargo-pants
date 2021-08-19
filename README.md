@@ -53,7 +53,7 @@ $ cargo pants
 ## Usage
 
 ```
-cargo-pants 0.3.1
+cargo-pants 0.3.2
 Glenn Mohre <glennmohre@gmail.com>
 A library for auditing your cargo dependencies for vulnerabilities and checking your pants
 
@@ -69,6 +69,7 @@ FLAGS:
     -V, --version     Prints version information
 
 OPTIONS:
+        --ignore-file <ignore-file>           The path to your .pants-ignore file [default: .pants-ignore]
         --ossi-api-key <oss-index-api-key>    OSS Index API Key [env: OSS_INDEX_API_KEY]
     -s, --pants_style <pants-style>           Your pants style
         --tomlfile <toml-file>                The path to your Cargo.toml file [default: Cargo.toml]
@@ -97,6 +98,21 @@ $ cargo pants --no-color
 This disables any coloring of the output.
 
 If vulnerabilities are found, `cargo-pants` exits with status code 3, and prints the Bill Of Materials/Found Vulnerabilities. If there are no issues, it will exit with status code 0.
+
+### Excluding
+Exclusion of vulnerabilities can be done! To accomplish this thus far we have implemented the ability to have a file named `.pants-ignore` checked in to your repo ideally, so that it would be at the root where you run `cargo-pants`. Alternatively you can run `cargo-pants` with a exclusion file at a different location, with an example such as:
+
+$ cargo pants --ignore-file /Users/cooldeveloperperson/code/sonatype-nexus-community/cargo-pants/.pants-ignore
+The file should look like:
+
+```
+{
+  "ignore": [{ "id": "78a61524-80c5-4371-b6d1-6b32af349043", "reason": "Insert reason here" }]
+}
+```
+The only field that actually matters is id and that is the ID you receive from OSS Index for a vulnerability. You can add fields such as reason so that you later can understand why you whitelisted a vulnerability.
+
+Any id that is excluded will be squelched from the results, and not cause a failure.
 
 ## IQ Usage
 
