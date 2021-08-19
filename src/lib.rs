@@ -21,6 +21,7 @@ extern crate serde_derive;
 extern crate log;
 extern crate serde_json;
 
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
@@ -66,30 +67,20 @@ pub struct Ignore {
 }
 
 pub fn filter_vulnerabilities(packages: &mut Vec<Coordinate>, exclude_vuln_file_path: PathBuf) {
-    let file = File::open(exclude_vuln_file_path).expect("Unable to open file");
-    let reader = BufReader::new(file);
+    let exclude_file = File::open(exclude_vuln_file_path).expect("Unable to read file");
+    let exclude_reader = BufReader::new(exclude_file);
     let filter_list_json: FilterList =
-        serde_json::from_reader(reader).expect("JSON was not well formatted");
+        serde_json::from_reader(exclude_reader).expect("JSON was not well formatted");
 
-    let ids = filter_list_json
+    let ignored_ids: HashSet<String> = filter_list_json
         .ignore
         .into_iter()
         .map(|filter| filter.id)
-        .collect::<Vec<String>>();
+        .collect();
 
-    for i in (0..packages.len()).rev() {
-        if packages[i].has_vulnerabilities() {
-            let mut vulns: Vec<Vulnerability> = vec![];
-            let old_vulns = &packages[i].vulnerabilities;
-            old_vulns.into_iter().all(|vuln| {
-                if !ids.contains(&vuln.id) {
-                    vulns.push(vuln.clone());
-                    return true;
-                } else {
-                    return false;
-                }
-            });
-            packages[i].vulnerabilities = vulns;
+    packages.iter_mut().for_each(|p| {
+        if p.has_vulnerabilities() {
+            p.vulnerabilities.retain(|v| !ignored_ids.contains(&v.id))
         }
-    }
+    });
 }
