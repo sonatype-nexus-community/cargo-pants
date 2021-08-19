@@ -24,6 +24,9 @@ jobs:
           name: Version information
           command: rustc --version; cargo --version; rustup --version
       - run:
+          name: Install nightly
+          command: rustup install nightly
+      - run:
           name: Calculate dependencies
           command: rustup run nightly cargo generate-lockfile
       - restore_cache:
