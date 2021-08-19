@@ -99,10 +99,13 @@ This disables any coloring of the output.
 
 If vulnerabilities are found, `cargo-pants` exits with status code 3, and prints the Bill Of Materials/Found Vulnerabilities. If there are no issues, it will exit with status code 0.
 
-### Excluding
+### Excluding Vulnerabilities
 Exclusion of vulnerabilities can be done! To accomplish this thus far we have implemented the ability to have a file named `.pants-ignore` checked in to your repo ideally, so that it would be at the root where you run `cargo-pants`. Alternatively you can run `cargo-pants` with a exclusion file at a different location, with an example such as:
 
+```
 $ cargo pants --ignore-file /Users/cooldeveloperperson/code/sonatype-nexus-community/cargo-pants/.pants-ignore
+```
+
 The file should look like:
 
 ```
