@@ -25,7 +25,7 @@ jobs:
           command: rustc --version; cargo --version; rustup --version
       - run:
           name: Calculate dependencies
-          command: cargo generate-lockfile
+          command: rustup run nightly cargo generate-lockfile
       - restore_cache:
           key: cargo-pants-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
       - run:
