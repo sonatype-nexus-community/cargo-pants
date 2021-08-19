@@ -22,6 +22,7 @@ extern crate log;
 extern crate serde_json;
 
 use terminal_size::{terminal_size, Height, Width};
+use std::fs;
 
 pub mod client;
 pub mod common;
@@ -48,3 +49,40 @@ pub fn calculate_term_width() -> u16 {
         }
     }
 }
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FilterList {
+    pub ignore: Vec<Ignore>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Ignore {
+    pub id: String,
+    pub reason: Option<String>,
+}
+
+pub fn filter_vulnerabilities(packages: &mut Vec<Coordinate>, exclude_vuln_file_path: String) {
+    let filter_list_str = fs::read_to_string(exclude_vuln_file_path).expect("Unable to read file");
+    let filter_list_json: FilterList = serde_json::from_str(&filter_list_str).expect("JSON was not well formatted");
+
+    let ids = filter_list_json.ignore.into_iter().map(|filter| filter.id ).collect::<Vec<String>>();
+
+    for i in (0..packages.len()).rev() {
+        if packages[i].has_vulnerabilities() {
+            let mut vulns: Vec<Vulnerability> = vec!();
+            let old_vulns = &packages[i].vulnerabilities;
+            old_vulns.into_iter().all(|vuln| {
+                if !ids.contains(&vuln.id) {
+                    vulns.push(vuln.clone());
+                    return true;
+                } else {
+                    return false;
+                }
+            });
+            packages[i].vulnerabilities = vulns;
+        }
+    }
+}
+

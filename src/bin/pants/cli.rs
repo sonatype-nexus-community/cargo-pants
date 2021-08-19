@@ -57,5 +57,9 @@ pub enum Opt {
         /// OSS Index API Key
         #[structopt(long = "ossi-api-key", env, hide_env_values = true)]
         oss_index_api_key: Option<String>,
+
+        // Ignore file
+        #[structopt(short = "i", long = "ignore-file")]
+        ignore_file: Option<String>,
     },
 }

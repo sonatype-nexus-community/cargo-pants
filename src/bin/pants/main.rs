@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use cargo_pants::filter_vulnerabilities;
 use cargo_pants::ParseCargoToml;
 use cargo_pants::ParseToml;
 use cargo_pants::{client::OSSIndexClient, coordinate::Coordinate};
@@ -40,6 +41,7 @@ fn main() {
             no_color,
             pants_style,
             oss_index_api_key,
+            ignore_file
         } => {
             common::construct_logger(false, log_level);
 
@@ -55,6 +57,7 @@ fn main() {
                 loud,
                 !no_color,
                 include_dev_dependencies,
+                ignore_file
             );
         }
     }
@@ -66,6 +69,7 @@ fn audit(
     verbose_output: bool,
     enable_color: bool,
     include_dev: bool,
+    ignore_file: Option<String>
 ) -> ! {
     let mut parser = ParseCargoToml::new(toml_file_path.clone(), include_dev);
     let packages = match parser.get_packages() {
@@ -92,6 +96,12 @@ fn audit(
 
     let mut non_vulnerable_package_count: u32 = 0;
     let mut vulnerable_package_count: u32 = 0;
+
+    // Ignore vulns
+    match ignore_file {
+        Some(file_path) => filter_vulnerabilities(&mut coordinates, file_path),
+        _ => ()
+    }
 
     for coordinate in &coordinates {
         if coordinate.has_vulnerabilities() {
