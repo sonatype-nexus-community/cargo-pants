@@ -330,16 +330,16 @@ impl IQClient {
                 let data = self.get_raw_report_results(res.report_data_url.clone());
                 let policy = self.get_policy_report_results(res.report_data_url.clone());
 
-                if data.is_ok() {
+                return if data.is_ok() {
                     let combined_results: ReportResults = ReportResults {
                         data_results: data.unwrap(),
                         policy_report_results: policy.unwrap(),
                         url_results: res,
                     };
-                    return Ok(combined_results);
+                    Ok(combined_results)
                 } else {
-                    return Err(Box::new(GeneralError(data.unwrap_err().to_string())));
-                }
+                    Err(Box::new(GeneralError(data.unwrap_err().to_string())))
+                };
             }
             if result.is_err() {
                 let res_err = result.unwrap_err();

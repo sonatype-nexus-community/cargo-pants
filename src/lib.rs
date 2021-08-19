@@ -21,6 +21,11 @@ extern crate serde_derive;
 extern crate log;
 extern crate serde_json;
 
+use log::trace;
+use std::collections::HashSet;
+use std::fs::File;
+use std::io::BufReader;
+use std::path::PathBuf;
 use terminal_size::{terminal_size, Height, Width};
 
 pub mod client;
@@ -39,12 +44,46 @@ pub use crate::{
 };
 
 pub fn calculate_term_width() -> u16 {
-    match terminal_size() {
-        Some((Width(w), Height(_h))) => {
-            return w;
+    return match terminal_size() {
+        Some((Width(w), Height(_h))) => w,
+        None => 80,
+    };
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FilterList {
+    pub ignore: Vec<Ignore>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Ignore {
+    pub id: String,
+    pub reason: Option<String>,
+}
+
+pub fn filter_vulnerabilities(packages: &mut Vec<Coordinate>, exclude_vuln_file_path: PathBuf) {
+    match File::open(exclude_vuln_file_path) {
+        Ok(file) => {
+            let exclude_reader = BufReader::new(file);
+            let filter_list_json: FilterList =
+                serde_json::from_reader(exclude_reader).expect("JSON was not well formatted");
+
+            let ignored_ids: HashSet<String> = filter_list_json
+                .ignore
+                .into_iter()
+                .map(|filter| filter.id)
+                .collect();
+
+            packages.iter_mut().for_each(|p| {
+                if p.has_vulnerabilities() {
+                    p.vulnerabilities.retain(|v| !ignored_ids.contains(&v.id))
+                }
+            });
         }
-        None => {
-            return 80;
+        Err(err) => {
+            trace!("No file found at location provided: {}", err.to_string())
         }
     }
 }

@@ -44,7 +44,7 @@ jobs:
           command: cargo test --all
       - run:
           name: Dogfood with locally built Cargo Pants
-          command: ./target/debug/cargo-pants pants
+          command: ./target/debug/cargo-pants pants --ignore-file .pants-ignore
       - run:
           name: Install Cargo Pants as Cargo Subcommand
           command: cargo install cargo-pants --force

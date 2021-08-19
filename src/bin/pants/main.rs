@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use cargo_pants::filter_vulnerabilities;
 use cargo_pants::ParseCargoToml;
 use cargo_pants::ParseToml;
 use cargo_pants::{client::OSSIndexClient, coordinate::Coordinate};
@@ -20,6 +21,7 @@ use console::StyledObject;
 use structopt::StructOpt;
 
 use std::io::{stdout, Write};
+use std::path::PathBuf;
 use std::{env, io, process};
 
 #[path = "../../common.rs"]
@@ -40,6 +42,7 @@ fn main() {
             no_color,
             pants_style,
             oss_index_api_key,
+            ignore_file,
         } => {
             common::construct_logger(false, log_level);
 
@@ -55,6 +58,7 @@ fn main() {
                 loud,
                 !no_color,
                 include_dev_dependencies,
+                ignore_file,
             );
         }
     }
@@ -66,6 +70,7 @@ fn audit(
     verbose_output: bool,
     enable_color: bool,
     include_dev: bool,
+    ignore_file: PathBuf,
 ) -> ! {
     let mut parser = ParseCargoToml::new(toml_file_path.clone(), include_dev);
     let packages = match parser.get_packages() {
@@ -92,6 +97,9 @@ fn audit(
 
     let mut non_vulnerable_package_count: u32 = 0;
     let mut vulnerable_package_count: u32 = 0;
+
+    // Ignore vulns
+    filter_vulnerabilities(&mut coordinates, ignore_file);
 
     for coordinate in &coordinates {
         if coordinate.has_vulnerabilities() {
@@ -203,7 +211,7 @@ fn write_package_output(
 
             println!("Inverse Dependency graph");
             assert!(parser.print_the_graph(coordinate.purl.clone()).is_ok());
-            println!("");
+            println!();
         }
     }
     Ok(())
@@ -325,7 +333,7 @@ mod tests {
         .expect("Failed to write package output");
         assert_eq!(
           convert_output(&package_output),
-          "\nVulnerable Dependencies\n\n[1/3] coord one purl-1vuln\n1 known vulnerability found\n\nVulnerability Title: coord1-vuln1 title\n╭─────────────┬───╮\n│ Description │   │\n├─────────────┼───┤\n│ CVSS Score  │ 0 │\n├─────────────┼───┤\n│ CVSS Vector │   │\n├─────────────┼───┤\n│ Reference   │   │\n╰─────────────┴───╯\n\n\n[2/3] coord two purl-3vulns\n3 known vulnerabilities found\n\nVulnerability Title: coord2-vuln1 title\n╭─────────────┬───╮\n│ Description │   │\n├─────────────┼───┤\n│ CVSS Score  │ 0 │\n├─────────────┼───┤\n│ CVSS Vector │   │\n├─────────────┼───┤\n│ Reference   │   │\n╰─────────────┴───╯\n\n\n\nVulnerability Title: coord2-vuln3 title\n╭─────────────┬───╮\n│ Description │   │\n├─────────────┼───┤\n│ CVSS Score  │ 0 │\n├─────────────┼───┤\n│ CVSS Vector │   │\n├─────────────┼───┤\n│ Reference   │   │\n╰─────────────┴───╯\n\n\n"
+          "\nVulnerable Dependencies\n\n[1/3] coord one purl-1vuln\n1 known vulnerability found\n\nVulnerability Title: coord1-vuln1 title\n╭─────────────┬───╮\n│ ID          │   │\n├─────────────┼───┤\n│ Description │   │\n├─────────────┼───┤\n│ CVSS Score  │ 0 │\n├─────────────┼───┤\n│ CVSS Vector │   │\n├─────────────┼───┤\n│ Reference   │   │\n╰─────────────┴───╯\n\n\n[2/3] coord two purl-3vulns\n3 known vulnerabilities found\n\nVulnerability Title: coord2-vuln1 title\n╭─────────────┬───╮\n│ ID          │   │\n├─────────────┼───┤\n│ Description │   │\n├─────────────┼───┤\n│ CVSS Score  │ 0 │\n├─────────────┼───┤\n│ CVSS Vector │   │\n├─────────────┼───┤\n│ Reference   │   │\n╰─────────────┴───╯\n\n\n\nVulnerability Title: coord2-vuln3 title\n╭─────────────┬───╮\n│ ID          │   │\n├─────────────┼───┤\n│ Description │   │\n├─────────────┼───┤\n│ CVSS Score  │ 0 │\n├─────────────┼───┤\n│ CVSS Vector │   │\n├─────────────┼───┤\n│ Reference   │   │\n╰─────────────┴───╯\n\n\n"
       );
     }
 

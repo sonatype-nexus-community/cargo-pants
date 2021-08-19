@@ -135,8 +135,8 @@ impl Default for ParseCargoToml {
 impl ParseToml for ParseCargoToml {
     fn new(toml_file_path: String, include_dev: bool) -> Self {
         return Self {
-            toml_file_path: toml_file_path,
-            include_dev: include_dev,
+            toml_file_path,
+            include_dev,
             ..Default::default()
         };
     }
