@@ -256,7 +256,7 @@ fn check_pants(n: &str) -> ! {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cargo_pants::TestParseCargoToml;
+    use cargo_pants::parse::TestParseCargoToml;
     use cargo_pants::Vulnerability;
 
     fn setup_test_coordinates() -> (Vec<Coordinate>, u32) {

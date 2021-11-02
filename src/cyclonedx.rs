@@ -57,7 +57,7 @@ fn generate_1_3_sbom_from_purls(purls: Vec<Package>) -> String {
         assert!(writer
             .write_event(Event::Start(BytesStart::borrowed_name(b"name")))
             .is_ok());
-        let name = &purl.clone().name;
+        let name = &purl.name();
         let name_value = BytesText::from_plain_str(name);
         assert!(writer.write_event(Event::Text(name_value)).is_ok());
         assert!(writer
@@ -68,7 +68,7 @@ fn generate_1_3_sbom_from_purls(purls: Vec<Package>) -> String {
         assert!(writer
             .write_event(Event::Start(BytesStart::borrowed_name(b"version")))
             .is_ok());
-        let vers = &purl.clone().version.unwrap();
+        let vers = &purl.version().unwrap();
         let version_value = BytesText::from_plain_str(vers);
         assert!(writer.write_event(Event::Text(version_value)).is_ok());
         assert!(writer
@@ -155,8 +155,8 @@ mod tests {
                 major: 1,
                 minor: 0,
                 patch: 0,
-                build: vec![],
-                pre: vec![],
+                build: semver::BuildMetadata::default(),
+                pre: semver::Prerelease::default(),
             },
             license: None,
             package_id: PackageId {
@@ -169,8 +169,8 @@ mod tests {
                 major: 1,
                 minor: 0,
                 patch: 1,
-                build: vec![],
-                pre: vec![],
+                build: semver::BuildMetadata::default(),
+                pre: semver::Prerelease::default(),
             },
             license: None,
             package_id: PackageId {
@@ -183,8 +183,8 @@ mod tests {
                 major: 1,
                 minor: 0,
                 patch: 2,
-                build: vec![],
-                pre: vec![],
+                build: semver::BuildMetadata::default(),
+                pre: semver::Prerelease::default(),
             },
             license: Some("Apache-2.0".to_string()),
             package_id: PackageId {
