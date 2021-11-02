@@ -93,8 +93,8 @@ impl ParseToml for TestParseCargoToml {
                 major: 1,
                 minor: 0,
                 patch: 2,
-                build: vec![],
-                pre: vec![],
+                build: semver::BuildMetadata::default(),
+                pre: semver::Prerelease::default(),
             },
             license: Some("Apache-2.0".to_string()),
             package_id: PackageId {
