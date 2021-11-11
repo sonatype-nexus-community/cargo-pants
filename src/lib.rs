@@ -13,20 +13,13 @@
 // limitations under the License.
 #![allow(dead_code)]
 
-extern crate serde;
-extern crate url;
-
-#[macro_use]
-extern crate serde_derive;
-extern crate log;
-extern crate serde_json;
-
-use log::trace;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 use terminal_size::{terminal_size, Height, Width};
+use tracing::trace;
 
 pub mod client;
 pub mod common;
@@ -50,13 +43,13 @@ pub fn calculate_term_width() -> u16 {
     };
 }
 
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FilterList {
     pub ignore: Vec<Ignore>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Ignore {
     pub id: String,

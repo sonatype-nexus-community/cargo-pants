@@ -13,6 +13,7 @@
 // limitations under the License.
 
 use crate::Vulnerability;
+use serde::Deserialize;
 use std::fmt;
 
 #[derive(Debug, Default, Deserialize)]

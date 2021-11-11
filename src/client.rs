@@ -13,10 +13,9 @@
 // limitations under the License.
 use std::collections::HashMap;
 
-#[allow(unused_imports)]
-use log::{debug, error};
 use reqwest::blocking::Client;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
+use tracing::debug;
 use url::Url;
 
 use crate::{coordinate::Coordinate, package::Package};

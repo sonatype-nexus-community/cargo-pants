@@ -15,6 +15,7 @@
 //! Crate metadata as parsed from `Cargo.lock`
 
 use cargo_metadata::Version;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// A Rust package (i.e. crate) as structured in `Cargo.lock`

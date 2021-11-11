@@ -23,11 +23,11 @@ use cargo_pants::ParseToml;
 use console::StyledObject;
 use console::{style, Emoji};
 use indicatif::{ProgressBar, ProgressStyle};
-use log::{debug, error, trace};
 use std::{env, process};
 use structopt::StructOpt;
 use term_table::row::Row;
 use term_table::table_cell::TableCell;
+use tracing::{debug, error, trace};
 
 #[path = "../../common.rs"]
 mod common;
@@ -60,7 +60,7 @@ fn main() {
                 env!("CARGO_BIN_NAME").to_string(),
                 env!("CARGO_PKG_VERSION").to_string(),
             );
-            common::construct_logger(true, log_level);
+            common::construct_logger(".iqserver", log_level);
             common::print_dev_dependencies_info(include_dev_dependencies);
 
             let spinner_style =

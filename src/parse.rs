@@ -18,7 +18,6 @@ use cargo_metadata::Metadata;
 use cargo_metadata::PackageId;
 use cargo_metadata::Resolve;
 use cargo_metadata::{CargoOpt, MetadataCommand};
-use log::{debug, trace};
 use petgraph::graph::Graph;
 use petgraph::graph::NodeIndex;
 use petgraph::visit::EdgeRef;
@@ -26,6 +25,7 @@ use petgraph::EdgeDirection;
 use std::collections::HashSet;
 use std::collections::{hash_map::Entry, HashMap, VecDeque};
 use std::ops::Index;
+use tracing::{debug, trace};
 
 #[derive(Clone, Copy)]
 enum Prefix {
