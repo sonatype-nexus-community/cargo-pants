@@ -38,7 +38,7 @@ Don't you check your pants for holes? Similarly, we think you should check your 
 
 `cargo-pants` is a Cargo subcommand, and can be installed using `cargo install`:
 
-```
+``` shell
 $ cargo install cargo-pants
 ```
 
@@ -46,13 +46,13 @@ Set an environment variable `OSS_INDEX_API_KEY` to auth requests with your key.
 
 Once you have installed `cargo-pants`, you can run it like so:
 
-```
+``` shell
 $ cargo pants
 ```
 
 ## Usage
 
-```
+``` shell
 cargo-pants 0.3.2
 Glenn Mohre <glennmohre@gmail.com>
 A library for auditing your cargo dependencies for vulnerabilities and checking your pants
@@ -79,7 +79,7 @@ OPTIONS:
 
 We will also inform you of our opinions of your pants style choice:
 
-```
+``` shell
 $ cargo pants --pants_style JNCO
 ```
 
@@ -87,32 +87,36 @@ We are very serious about pants.
 
 There are also two command line flags that affect the output further:
 
-```
+``` shell
 $ cargo pants --loud
 ```
+
 This shows all non-vulnerable dependencies for a complete Bill of Materials.
 
-```
+``` shell
 $ cargo pants --no-color
 ```
+
 This disables any coloring of the output.
 
 If vulnerabilities are found, `cargo-pants` exits with status code 3, and prints the Bill Of Materials/Found Vulnerabilities. If there are no issues, it will exit with status code 0.
 
 ### Excluding Vulnerabilities
+
 Exclusion of vulnerabilities can be done! To accomplish this thus far we have implemented the ability to have a file named `.pants-ignore` checked in to your repo ideally, so that it would be at the root where you run `cargo-pants`. Alternatively you can run `cargo-pants` with a exclusion file at a different location, with an example such as:
 
-```
+``` shell
 $ cargo pants --ignore-file /Users/cooldeveloperperson/code/sonatype-nexus-community/cargo-pants/.pants-ignore
 ```
 
 The file should look like:
 
-```
+``` json
 {
   "ignore": [{ "id": "78a61524-80c5-4371-b6d1-6b32af349043", "reason": "Insert reason here" }]
 }
 ```
+
 The only field that actually matters is id and that is the ID you receive from OSS Index for a vulnerability. You can add fields such as reason so that you later can understand why you whitelisted a vulnerability.
 
 Any id that is excluded will be squelched from the results, and not cause a failure.
@@ -121,7 +125,7 @@ Any id that is excluded will be squelched from the results, and not cause a fail
 
 More TBD, but experimental usage for Nexus IQ Server now exists:
 
-```
+``` shell
 cargo-iq 0.3.1
 Glenn Mohre <glennmohre@gmail.com>
 A library for auditing your cargo dependencies for vulnerabilities and checking your pants
@@ -149,7 +153,7 @@ OPTIONS:
 
 Similar to `cargo audit` but with more pants, you can run `cargo pants` on your builds on Travis CI using this example config:
 
-```
+``` yaml
 language: rust
 before_script:
   - cargo install --force cargo-pants
@@ -181,7 +185,9 @@ You can run your local changes without installing the package via:
 ```shell
 cargo run pants
 ```
+
 or
+
 ```shell
 cargo run iq --iq-application sandbox-application
 ```
@@ -219,4 +225,3 @@ Have fun creating and using `cargo-pants` and the [Sonatype OSS Index](https://o
 Looking to contribute to our code but need some help? There's a few ways to get information:
 
 * Chat with us on [Gitter](https://gitter.im/sonatype/nexus-developers)
-
