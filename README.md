@@ -174,7 +174,7 @@ a new issue, or comment on an existing issue, to let others know you are!
 
 The code for `cargo-pants` was largely written by Glenn Mohre, and we want to give ultimate thanks, kudos, congratulations to Glenn for contributing this to the community. Open Source is awesome, and you help make it better!
 
-The `cargo-pants` logo was grabbed from [www.pexels.com](https://www.pexels.com), specifically from [this image](https://www.pexels.com/photo/people-wearing-denim-jeans-1353361/). 
+The `cargo-pants` logo was grabbed from [www.pexels.com](https://www.pexels.com), specifically from [this image](https://www.pexels.com/photo/people-wearing-denim-jeans-1353361/).
 
 Code for `cargo-pants` was influenced by `cargo-audit`, and we acknowledge we stand on the shoulders of giants.
 
