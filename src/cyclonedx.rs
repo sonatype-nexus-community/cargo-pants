@@ -16,7 +16,6 @@ extern crate packageurl;
 extern crate quick_xml;
 
 use crate::Package;
-use log::trace;
 use packageurl::PackageUrl;
 use quick_xml::events::BytesEnd;
 use quick_xml::events::BytesStart;
@@ -25,6 +24,7 @@ use quick_xml::events::Event;
 use quick_xml::Writer;
 use std::io::Cursor;
 use std::str::FromStr;
+use tracing::trace;
 
 pub struct CycloneDXGenerator();
 

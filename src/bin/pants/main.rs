@@ -19,13 +19,13 @@ use cargo_pants::{client::OSSIndexClient, coordinate::Coordinate};
 use console::style;
 use console::StyledObject;
 use structopt::StructOpt;
+use tracing::info;
 
 use std::io::{stdout, Write};
 use std::path::PathBuf;
 use std::{env, io, process};
 
 #[path = "../../common.rs"]
-#[macro_use]
 mod common;
 
 mod cli;
@@ -44,7 +44,7 @@ fn main() {
             oss_index_api_key,
             ignore_file,
         } => {
-            common::construct_logger(false, log_level);
+            common::construct_logger(".ossindex", log_level);
 
             if let Some(pants_style) = pants_style {
                 check_pants(&pants_style);
@@ -84,7 +84,7 @@ fn audit(
     let api_key = match oss_index_api_key {
         Some(oss_index_api_key) => oss_index_api_key,
         None => {
-            log::info!("Warning: missing optional 'OSS_INDEX_API_KEY'");
+            info!("Warning: missing optional 'OSS_INDEX_API_KEY'");
             String::new()
         }
     };
@@ -160,7 +160,11 @@ fn write_package_output(
     width_override: Option<u16>,
     parser: &impl ParseToml,
 ) -> io::Result<()> {
-    let vulnerability = ternary!(vulnerable, "Vulnerable", "Non-vulnerable");
+    let vulnerability = if vulnerable {
+        "Vulnerable"
+    } else {
+        "Non-vulnerable"
+    };
 
     writeln!(output, "\n{} Dependencies\n", vulnerability)?;
 

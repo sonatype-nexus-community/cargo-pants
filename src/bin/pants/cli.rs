@@ -15,8 +15,8 @@
 use std::path::PathBuf;
 
 use crate::common;
-use log::LevelFilter;
 use structopt::StructOpt;
+use tracing_subscriber::filter::EnvFilter;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -37,7 +37,7 @@ pub enum Opt {
 
         /// Set the verbosity of the logger, more is more verbose, so -vvvv is more verbose than -v
         #[structopt(short = "v", long = "verbose", parse(from_occurrences = common::parse_log_level))]
-        log_level: LevelFilter,
+        log_level: EnvFilter,
 
         /// A flag to include dev dependencies
         #[structopt(long = "dev")]
