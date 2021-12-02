@@ -563,9 +563,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(
-        expected = "empty application ID: GeneralError(\"could not get internal application id for public application id: "
-    )]
     fn test_audit_with_iq_server_when_applications_empty() {
         let public_app_id = "iqPublicApplicationId".to_string();
         let mock_path = format!("/api/v2/applications?publicId={}", public_app_id);
@@ -588,9 +585,9 @@ mod tests {
                 public_app_id.to_string(),
                 0,
             );
-            let _internal_application_id = client
-                .audit_with_iq_server("".to_string())
-                .expect("empty application ID");
+            let actual_error = client.audit_with_iq_server("".to_string()).err().unwrap();
+            assert!(format!("{}", actual_error).contains(
+                "A general error occurred talking to Nexus IQ Server: could not get internal application id for public application id: "));
         }
         mock.assert();
     }
