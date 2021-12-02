@@ -307,6 +307,9 @@ impl IQClient {
             Err(e) => return Err(Box::new(e)),
         };
 
+        if internal_application_id.applications.len() == 0 {
+            return Err(Box::new(GeneralError(format!("could not get internal application id for public application id: {}. perhaps you lack permissions on this application?", app.to_string()).into())));
+        }
         let internal_app = &internal_application_id.applications[0].id;
 
         let status_url = match self.submit_to_third_party_api(internal_app.to_string(), sbom) {
@@ -487,31 +490,31 @@ mod tests {
     }
 
     #[test]
-    fn test_get_internal_app_id_when_empty() {
-        let public_app_id = "iqPublicApplicationId";
-        let mut mock_path = "/api/v2/applications?publicId=".to_owned();
-        mock_path.push_str(public_app_id);
+    fn test_get_internal_app_id_one_application() {
+        let public_app_id = "iqPublicApplicationId".to_string();
+        let mock_path = format!("/api/v2/applications?publicId={}", public_app_id);
 
         let raw_json: &str = r#"{
                 "applications": [
                     {
-                        "id": "4bb67dcfc86344e3a483832f8c496419"
+                        "id": "4bb67dcfc86344e3a483832f8c496419",
+                        "publicId": "iqPublicApplicationId",
+                        "name": "MyApplicationName"
                     }
                 ]
             }"#;
-        let mock = mock("GET", "/api/v2/applications?publicId=iqPublicApplicationId")
+        let mock = mock("GET", mock_path.as_str())
             .with_header("CONTENT_TYPE", "application/json")
             .with_body(raw_json)
-            //.with_body("{}")
             .create();
         {
             let mock_server = &mockito::server_url();
             let client = IQClient::new(
                 mock_server.parse().unwrap(),
-                "".parse().unwrap(),
-                "".parse().unwrap(),
-                "".parse().unwrap(),
-                "iqAppId".parse().unwrap(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                public_app_id.to_string(),
                 0,
             );
             let internal_application_id = client
@@ -519,6 +522,70 @@ mod tests {
                 .expect("Failed to retrieve application ID");
 
             assert_eq!(internal_application_id.applications.len(), 1);
+            assert_eq!(internal_application_id.applications[0].public_id, public_app_id);
+        }
+        mock.assert();
+    }
+
+    #[test]
+    fn test_get_internal_app_id_when_empty() {
+        let public_app_id = "iqPublicApplicationId".to_string();
+        let mock_path = format!("/api/v2/applications?publicId={}", public_app_id);
+
+        let raw_json: &str = r#"{
+                "applications": [
+                ]
+            }"#;
+        let mock = mock("GET", mock_path.as_str())
+            .with_header("CONTENT_TYPE", "application/json")
+            .with_body(raw_json)
+            .create();
+        {
+            let mock_server = &mockito::server_url();
+            let client = IQClient::new(
+                mock_server.parse().unwrap(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                public_app_id.to_string(),
+                0,
+            );
+            let internal_application_id = client
+                .get_internal_application_id(public_app_id.to_string())
+                .expect("Failed to retrieve application ID");
+
+            assert_eq!(internal_application_id.applications.len(), 0);
+        }
+        mock.assert();
+    }
+
+    #[test]
+    #[should_panic(expected = "empty application ID: GeneralError(\"could not get internal application id for public application id: ")]
+    fn test_audit_with_iq_server_when_applications_empty() {
+        let public_app_id = "iqPublicApplicationId".to_string();
+        let mock_path = format!("/api/v2/applications?publicId={}", public_app_id);
+
+        let raw_json: &str = r#"{
+                "applications": [
+                ]
+            }"#;
+        let mock = mock("GET", mock_path.as_str())
+            .with_header("CONTENT_TYPE", "application/json")
+            .with_body(raw_json)
+            .create();
+        {
+            let mock_server = &mockito::server_url();
+            let client = IQClient::new(
+                mock_server.parse().unwrap(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                public_app_id.to_string(),
+                0,
+            );
+            let _internal_application_id = client
+                .audit_with_iq_server("".to_string())
+                .expect("empty application ID");
         }
         mock.assert();
     }
