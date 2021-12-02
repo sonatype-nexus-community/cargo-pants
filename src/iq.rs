@@ -522,7 +522,10 @@ mod tests {
                 .expect("Failed to retrieve application ID");
 
             assert_eq!(internal_application_id.applications.len(), 1);
-            assert_eq!(internal_application_id.applications[0].public_id, public_app_id);
+            assert_eq!(
+                internal_application_id.applications[0].public_id,
+                public_app_id
+            );
         }
         mock.assert();
     }
@@ -560,7 +563,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "empty application ID: GeneralError(\"could not get internal application id for public application id: ")]
+    #[should_panic(
+        expected = "empty application ID: GeneralError(\"could not get internal application id for public application id: "
+    )]
     fn test_audit_with_iq_server_when_applications_empty() {
         let public_app_id = "iqPublicApplicationId".to_string();
         let mock_path = format!("/api/v2/applications?publicId={}", public_app_id);
