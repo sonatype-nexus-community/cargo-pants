@@ -488,20 +488,17 @@ mod tests {
 
     #[test]
     fn test_get_internal_app_id_when_empty() {
-
-        let public_app_id= "iqPublicApplicationId";
+        let public_app_id = "iqPublicApplicationId";
         let mut mock_path = "/api/v2/applications?publicId=".to_owned();
         mock_path.push_str(public_app_id);
 
-        let raw_json: &[u8] =
-            r##""{
+        let raw_json: &str = r#"{
                 "applications": [
                     {
                         "id": "4bb67dcfc86344e3a483832f8c496419"
                     }
                 ]
-            }"##
-            .as_bytes();
+            }"#;
         let mock = mock("GET", "/api/v2/applications?publicId=iqPublicApplicationId")
             .with_header("CONTENT_TYPE", "application/json")
             .with_body(raw_json)
@@ -515,16 +512,13 @@ mod tests {
                 "".parse().unwrap(),
                 "".parse().unwrap(),
                 "iqAppId".parse().unwrap(),
-                0
+                0,
             );
-            let internal_application_id = match client.get_internal_application_id(public_app_id.to_string()) {
-                Ok(internal_application_id) => internal_application_id,
-                Err(_e) => {
-                    ApplicationResponse{applications: vec![]}
-                },
-            };
+            let internal_application_id = client
+                .get_internal_application_id(public_app_id.to_string())
+                .expect("Failed to retrieve application ID");
 
-            assert_eq!(&internal_application_id.applications.len(), &1)
+            assert_eq!(internal_application_id.applications.len(), 1);
         }
         mock.assert();
     }
