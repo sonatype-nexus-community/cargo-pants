@@ -308,7 +308,7 @@ impl IQClient {
         };
 
         if internal_application_id.applications.len() == 0 {
-            return Err(Box::new(GeneralError(format!("could not get internal application id for public application id: {}. perhaps you lack permissions on this application?", app.to_string()).into())));
+            return Err(Box::new(GeneralError(format!("could not get internal application id for public application id: {}. perhaps you ({}) lack permissions on this application?", app.to_string(), &self.user.to_string()).into())));
         }
         let internal_app = &internal_application_id.applications[0].id;
 
