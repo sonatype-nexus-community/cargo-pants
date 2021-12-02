@@ -183,13 +183,13 @@ Code for `cargo-pants` was influenced by `cargo-audit`, and we acknowledge we st
 You can run your local changes without installing the package via:
 
 ```shell
-cargo run pants
+cargo run --bin cargo-pants pants
 ```
 
 or
 
 ```shell
-cargo run iq --iq-application sandbox-application
+cargo run --bin cargo-iq iq --iq-application sandbox-application
 ```
 
 Use the commands below to build and install the package locally:
