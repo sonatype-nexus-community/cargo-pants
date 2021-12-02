@@ -461,6 +461,7 @@ impl IQClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mockito::mock;
 
     #[test]
     fn new_iqclient() {
@@ -483,5 +484,48 @@ mod tests {
         assert_eq!(client.stage, stage.to_string());
         assert_eq!(client.application, app_id.to_string());
         assert_eq!(client.attempts, 1);
+    }
+
+    #[test]
+    fn test_get_internal_app_id_when_empty() {
+
+        let public_app_id= "iqPublicApplicationId";
+        let mut mock_path = "/api/v2/applications?publicId=".to_owned();
+        mock_path.push_str(public_app_id);
+
+        let raw_json: &[u8] =
+            r##""{
+                "applications": [
+                    {
+                        "id": "4bb67dcfc86344e3a483832f8c496419"
+                    }
+                ]
+            }"##
+            .as_bytes();
+        let mock = mock("GET", "/api/v2/applications?publicId=iqPublicApplicationId")
+            .with_header("CONTENT_TYPE", "application/json")
+            // .with_body(raw_json)
+            .with_body("{}")
+            .create();
+        {
+            let mock_server = &mockito::server_url();
+            let client = IQClient::new(
+                mock_server.parse().unwrap(),
+                "".parse().unwrap(),
+                "".parse().unwrap(),
+                "".parse().unwrap(),
+                "iqAppId".parse().unwrap(),
+                0
+            );
+            let internal_application_id = match client.get_internal_application_id(public_app_id.to_string()) {
+                Ok(internal_application_id) => internal_application_id,
+                Err(_e) => {
+                    ApplicationResponse{applications: vec![]}
+                },
+            };
+
+            assert_eq!(&internal_application_id.applications.len(), &1)
+        }
+        mock.assert();
     }
 }
