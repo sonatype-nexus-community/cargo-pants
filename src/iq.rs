@@ -504,8 +504,8 @@ mod tests {
             .as_bytes();
         let mock = mock("GET", "/api/v2/applications?publicId=iqPublicApplicationId")
             .with_header("CONTENT_TYPE", "application/json")
-            // .with_body(raw_json)
-            .with_body("{}")
+            .with_body(raw_json)
+            //.with_body("{}")
             .create();
         {
             let mock_server = &mockito::server_url();
