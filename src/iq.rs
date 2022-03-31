@@ -404,7 +404,7 @@ impl IQClient {
             .post(url)
             .basic_auth(&self.user.to_string(), Some(&self.token.to_string()))
             .body(sbom.clone())
-            .header("Content-Type","application/xml")
+            .header("Content-Type", "application/xml")
             .send()?;
 
         return res.json();
