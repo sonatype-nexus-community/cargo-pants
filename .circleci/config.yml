@@ -1,4 +1,8 @@
 version: 2.1
+
+orbs:
+  slack: circleci/slack@4.4.4
+
 executors:
   circleci-rust-docker:
     docker:
@@ -56,9 +60,12 @@ workflows:
   version: 2
   build_and_release:
     jobs:
-      - build
+      - build:
+          context: slack_community_oss_fun
       - release:
-          context: cargo-pants
+          context:
+            - cargo-pants
+            - slack_community_oss_fun
           filters:
             branches:
               only:
@@ -74,4 +81,5 @@ workflows:
             branches:
               only: main
     jobs:
-      - build
+      - build:
+          context: slack_community_oss_fun
