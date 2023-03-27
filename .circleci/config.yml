@@ -19,6 +19,10 @@ jobs:
       - run:
           name: Run publish
           command: .circleci/ci-publish.sh
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
+          branch_pattern: main
 
   build:
     executor: circleci-rust-docker
@@ -55,6 +59,10 @@ jobs:
       - run:
           name: Dogfood Cargo Pants
           command: cargo pants
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
+          branch_pattern: main
 
 workflows:
   version: 2
