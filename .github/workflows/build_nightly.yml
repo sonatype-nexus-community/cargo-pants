@@ -1,0 +1,46 @@
+name: sonatype-nexus-community/cargo-pants/build_nightly
+on:
+  schedule:
+  - cron: 50 20 * * *
+#   # 'filters' was not transformed because there is no suitable equivalent in GitHub Actions
+jobs:
+  build-nightly:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    container:
+      image: rust:1.61
+    env:
+      SLACK_ACCESS_TOKEN:
+      SLACK_DEFAULT_CHANNEL:
+    steps:
+    - uses: actions/checkout@v3.5.0
+    - name: Version information
+      run: rustc --version; cargo --version; rustup --version
+    - name: Calculate dependencies
+      run: cargo generate-lockfile
+    - name: restore_cache
+      uses: actions/cache@v3.3.1
+      with:
+        key: cargo-pants-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
+        path: |-
+          ~/.cargo
+          ./target
+    - name: Check formatting
+      run: cargo fmt -- --check
+    - name: Build all targets
+      run: cargo build --all --all-targets
+    - name: Run all tests
+      run: cargo test --all
+    - name: Dogfood with locally built Cargo Pants
+      run: "./target/debug/cargo-pants pants --ignore-file .pants-ignore"
+    - name: Install Cargo Pants as Cargo Subcommand
+      run: cargo install cargo-pants --force
+    - name: Dogfood Cargo Pants
+      run: cargo pants
+    - uses: "./.github/actions/slack_notify"
+      continue-on-error: true
+      if: failure()
+      with:
+        slack_webhook: "${{ secrets.SLACK_WEBHOOK }}"
+        slack_channel: "${{ env.SLACK_DEFAULT_CHANNEL }}"
+        branch_pattern: main

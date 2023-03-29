@@ -1,0 +1,42 @@
+name: circleci_slack_notify
+inputs:
+  slack_webhook:
+    required: true
+    description: Slack WebHook URL used to send message.
+  slack_channel:
+    required: true
+    description: Slack channel in which message needs to be sent
+  branch_pattern:
+    required: false
+    default: ".+"
+    description: Regex used to match branch name, defaults to `.+` to match all branches
+  tag_pattern:
+    required: false
+    default: ".+"
+    description: Regex used to match tag name, defaults to `.+` to match all branches
+runs:
+  using: composite
+  steps:
+  - id: branch_pattern
+    shell: bash
+    run: |-
+      if [[ '${{ env.VALUE_TO_MATCH }}' =~ ${{ env.BRANCH_PATTERN }} ]]; then
+        echo match=true >> $GITHUB_OUTPUT
+      fi
+    env:
+      VALUE_TO_MATCH: "${{ github.ref }}"
+      BRANCH_PATTERN: "${{ inputs.branch_pattern }}"
+  - id: tag_pattern
+    shell: bash
+    run: |-
+      if [[ '${{ env.VALUE_TO_MATCH }}' =~ ${{ env.TAG_PATTERN }} ]]; then
+        echo match=true >> $GITHUB_OUTPUT
+      fi
+    env:
+      VALUE_TO_MATCH: "${{ github.ref }}"
+      TAG_PATTERN: "${{ inputs.tag_pattern }}"
+  - uses: rtCamp/action-slack-notify@v2.2.0
+    if: "${{ steps.branch_pattern.outputs.match == 'true' && steps.tag_pattern.outputs.match == 'true' }}"
+    env:
+      SLACK_WEBHOOK: "${{ inputs.slack_webhook }}"
+      SLACK_CHANNEL: "${{ inputs.slack_channel }}"
