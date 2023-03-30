@@ -15,7 +15,7 @@ Tracking the things I did to use and locally run CI builds with GitHub Actions.
 
     Use locally configured vars/secrets:
 
-        act -j build --env-file .github/dan.env --secret-file .github/dan-secret.env
+        act -j build --env-file .github/vars.env --secret-file .github/secrets.env
   
 Misc
 ----

@@ -17,13 +17,15 @@ jobs:
       run: rustc --version; cargo --version; rustup --version
     - name: Calculate dependencies
       run: cargo generate-lockfile
-    - name: restore_cache
-      uses: actions/cache@v3.3.1
-      with:
-        key: cargo-pants-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
-        path: |-
-          ~/.cargo
-          ./target
+#    - name: restore_cache
+#      uses: actions/cache@v3.3.1
+#      with:
+#        key: cargo-pants-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
+#        path: |-
+#          ~/.cargo
+#          ./target
+    - name: Install rustfmt
+      run: rustup component add rustfmt
     - name: Check formatting
       run: cargo fmt -- --check
     - name: Build all targets
