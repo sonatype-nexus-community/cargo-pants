@@ -1,3 +1,8 @@
 {
-  "ignore": [ ]
+  "ignore": [
+     {
+       "id": "sonatype-2023-1611",
+       "reason": "No patched version of openssl (nor openssl-sys) is available at this time."
+     }
+  ]
 }
