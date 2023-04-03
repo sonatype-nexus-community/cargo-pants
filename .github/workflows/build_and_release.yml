@@ -12,13 +12,13 @@ jobs:
       SLACK_ACCESS_TOKEN:
       SLACK_DEFAULT_CHANNEL:
     steps:
-    - uses: actions/checkout@v3.5.0
+    - uses: actions/checkout@v3
     - name: Version information
       run: rustc --version; cargo --version; rustup --version
     - name: Calculate dependencies
       run: cargo generate-lockfile
 #    - name: restore_cache
-#      uses: actions/cache@v3.3.1
+#      uses: actions/cache@v3
 #      with:
 #        key: cargo-pants-cache-{{ arch }}-{{ checksum "Cargo.lock" }}
 #        path: |-
@@ -67,7 +67,7 @@ jobs:
         name: circle_ci_id_rsa
         known_hosts: "${{ secrets.CIRCLE_CI_KNOWN_HOSTS }}"
         if_key_exists: fail
-    - uses: actions/checkout@v3.5.0
+    - uses: actions/checkout@v3
     - name: Run publish
       run: ".circleci/ci-publish.sh"
     - uses: "./.github/actions/slack_notify"
