@@ -91,7 +91,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-pants"
-version = "0.4.9"
+version = "0.4.10"
 dependencies = [
  "cargo_metadata",
  "console",
