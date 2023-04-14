@@ -226,7 +226,8 @@ fn print_iq_policy_violations(res: PolicyReportResult, parser: &impl ParseToml) 
                             .join(",")
                     );
                     println!("Inverse Dependency graph");
-                    assert!(parser.print_the_graph(comp.package_url).is_ok());
+                    let clean_purl = remove_url_parameter_suffix(&comp.package_url);
+                    assert!(parser.print_the_graph(clean_purl.to_string()).is_ok());
                     println!();
                 }
                 None => {}
@@ -235,6 +236,16 @@ fn print_iq_policy_violations(res: PolicyReportResult, parser: &impl ParseToml) 
 
         println!();
     }
+}
+
+fn remove_url_parameter_suffix(s: &str) -> &str {
+    if s.contains("?") {
+        let param_location = s.find("?").unwrap_or(s.len());
+
+        let clean_url = &s[..param_location];
+        return clean_url;
+    }
+    return s;
 }
 
 fn policy_violation_to_styled_object(violation: String) -> StyledObject<String> {
@@ -304,4 +315,87 @@ fn generate_summary_table(policy_violations: OpenPolicyViolations) -> () {
     ]));
 
     println!("{}", table.render());
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{print_iq_policy_violations, remove_url_parameter_suffix};
+    use cargo_pants::iq::{Component, PolicyReportResult, Violation};
+    use cargo_pants::{ParseCargoToml, ParseToml};
+
+    #[test]
+    fn remove_url_param_suffix_variants() {
+        assert_eq!(
+            "package-name",
+            remove_url_parameter_suffix("package-name?type=crate")
+        );
+        assert_eq!("hello", remove_url_parameter_suffix("hello"));
+        assert_eq!("", remove_url_parameter_suffix(""));
+        assert_eq!("", remove_url_parameter_suffix("?"));
+    }
+
+    #[test]
+    fn handle_iq_purl_suffix() {
+        // find pure purl to use for test
+        let mut parser = ParseCargoToml::default(); // @todo Why does this not work under debug mode?
+        let packages = match parser.get_packages() {
+            Ok(packages) => packages,
+            Err(e) => {
+                println!("{}", e);
+                println!("toml file: {}", parser.toml_file_path);
+                assert!(false, "did you perhaps run 'ParseCargoToml' under debug mode? maybe try running full speed? error: {}", e);
+                return ();
+            }
+        };
+
+        let mut test_package_url = "".to_string();
+        let test_package_name = "openssl-sys"; // real package
+        for package in packages {
+            if package.name.to_string().eq(test_package_name) {
+                test_package_url.push_str(
+                    &("pkg:cargo/".to_string()
+                        + &package.name.to_string()
+                        + "@"
+                        + &package.version.to_string()),
+                );
+                break;
+            }
+        }
+        assert_ne!("".to_string(), test_package_url);
+
+        // fake IQ result containing test package with purl suffix
+        let violation = Violation {
+            policy_id: "".to_string(),
+            policy_name: "".to_string(),
+            policy_threat_category: "".to_string(),
+            policy_threat_level: 0,
+            policy_violation_id: "".to_string(),
+            waived: false,
+            grandfathered: false,
+            constraints: vec![],
+        };
+        let iq_purl_suffix = "?type=crate";
+        let component_from_iq = Component {
+            hash: "".to_string(),
+            match_state: "".to_string(),
+            component_identifier: Default::default(),
+            package_url: (test_package_url + iq_purl_suffix).to_string(),
+            proprietary: false,
+            pathnames: vec![],
+            dependency_data: None,
+            violations: Option::from(vec![violation]),
+            display_name: None,
+        };
+        let iq_result = PolicyReportResult {
+            report_time: 0,
+            report_title: "".to_string(),
+            commit_hash: None,
+            initiator: "".to_string(),
+            application: Default::default(),
+            counts: Default::default(),
+            components: vec![component_from_iq],
+        };
+
+        print_iq_policy_violations(iq_result, &parser)
+    }
 }
