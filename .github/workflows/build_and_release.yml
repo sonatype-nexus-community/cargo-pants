@@ -46,7 +46,8 @@ jobs:
         slack_channel: "${{ env.SLACK_DEFAULT_CHANNEL }}"
         branch_pattern: main
   release:
-    if: github.ref == 'refs/heads/main'
+    if: ${{ false }}  # disable for now
+#    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     container:
       image: rust:1.61
