@@ -2,7 +2,7 @@ CI with GitHub Actions Notes
 ================
 Tracking the things I did to use and locally run CI builds with GitHub Actions.
 
-* Local build: Use [Nectos/Act](https://github.com/nektos/act) to GitHub Actions locally.
+* Local build: Use [Nectos/Act](https://github.com/nektos/act) run to GitHub Actions locally.
 
   Some common commands:
   * The command below will look in `.github/workflows` for a `.yml` file containing a `job` with id: `build`, and run that job:
