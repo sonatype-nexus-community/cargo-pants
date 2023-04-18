@@ -226,8 +226,8 @@ fn print_iq_policy_violations(res: PolicyReportResult, parser: &impl ParseToml) 
                             .join(",")
                     );
                     println!("Inverse Dependency graph");
-                    let clean_purl = remove_url_parameter_suffix(&comp.package_url);
-                    assert!(parser.print_the_graph(clean_purl.to_string()).is_ok());
+                    let clean_purl = remove_url_parameter_suffix(comp.package_url);
+                    assert!(parser.print_the_graph(clean_purl).is_ok());
                     println!();
                 }
                 None => {}
@@ -238,12 +238,12 @@ fn print_iq_policy_violations(res: PolicyReportResult, parser: &impl ParseToml) 
     }
 }
 
-fn remove_url_parameter_suffix(s: &str) -> &str {
+fn remove_url_parameter_suffix(s: String) -> String {
     if s.contains("?") {
         let param_location = s.find("?").unwrap_or(s.len());
 
         let clean_url = &s[..param_location];
-        return clean_url;
+        return clean_url.to_string();
     }
     return s;
 }
@@ -327,11 +327,11 @@ mod tests {
     fn remove_url_param_suffix_variants() {
         assert_eq!(
             "package-name",
-            remove_url_parameter_suffix("package-name?type=crate")
+            remove_url_parameter_suffix("package-name?type=crate".to_string())
         );
-        assert_eq!("hello", remove_url_parameter_suffix("hello"));
-        assert_eq!("", remove_url_parameter_suffix(""));
-        assert_eq!("", remove_url_parameter_suffix("?"));
+        assert_eq!("hello", remove_url_parameter_suffix("hello".to_string()));
+        assert_eq!("", remove_url_parameter_suffix("".to_string()));
+        assert_eq!("", remove_url_parameter_suffix("?".to_string()));
     }
 
     #[test]
