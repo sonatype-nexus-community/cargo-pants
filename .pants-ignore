@@ -3,10 +3,6 @@
      {
        "id": "sonatype-2023-1611",
        "reason": "No patched version of openssl (nor openssl-sys) is available at this time."
-     },
-     {
-       "id": "CVE-2023-26964",
-       "reason": "From the project issue: you can just safely ignore ... If you're using a client, with HTTP/2, but you're talking to your own servers, or you at least control the URLs to talk to servers you trust to not attack your client (most businesses), ignore."
      }
   ]
 }
