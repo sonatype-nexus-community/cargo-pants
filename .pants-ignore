@@ -7,6 +7,10 @@
      {
        "id": "CVE-2023-26964",
        "reason": "From the project issue: you can just safely ignore ... If you're using a client, with HTTP/2, but you're talking to your own servers, or you at least control the URLs to talk to servers you trust to not attack your client (most businesses), ignore. Vulnerability still flagged in hyper@0.14.26"
+     },
+     {
+       "id": "CVE-2023-1255",
+       "reason": "Low priority issue in openssl-sys@0.9.86. Ignore for now, will upgrade if a patched version is published."
      }
   ]
 }
