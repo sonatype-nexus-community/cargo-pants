@@ -11,6 +11,10 @@
      {
        "id": "CVE-2023-1255",
        "reason": "Low priority issue in openssl-sys@0.9.86. Ignore for now, will upgrade if a patched version is published."
+     },
+     {
+       "id": "CVE-2023-3446",
+       "reason": "Ignore for now. Update after patch is released. see: https://github.com/openssl/openssl/pull/21451"
      }
   ]
 }
