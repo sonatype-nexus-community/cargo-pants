@@ -561,11 +561,13 @@ mod tests {
                 public_app_id.to_string(),
                 0,
             );
-            let result = client
-                .get_internal_application_id(public_app_id.to_string());
+            let result = client.get_internal_application_id(public_app_id.to_string());
 
             let actual_error = result.unwrap_err();
-            assert_eq!("error decoding response body: expected value at line 1 column 1", actual_error.to_string())
+            assert_eq!(
+                "error decoding response body: expected value at line 1 column 1",
+                actual_error.to_string()
+            )
         }
         mock.assert();
     }
