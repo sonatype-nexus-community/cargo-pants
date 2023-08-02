@@ -380,6 +380,7 @@ impl IQClient {
             .basic_auth(&self.user.to_string(), Some(&self.token.to_string()))
             .send()?;
 
+        // NOTE: This doesn't work, because the res.json() call has not yet resolved the status value
         let error_message = match res.status() {
             StatusCode::OK => "",
             StatusCode::PAYMENT_REQUIRED => "Status 402: Missing or expired IQ Server license?\n",
