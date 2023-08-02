@@ -15,6 +15,6 @@ cargo publish --token $CARGO_REGISTRY_TOKEN --verbose --allow-dirty
 
 git commit -am "[skip ci] new development bump to $VERSION"
 
-git tag -a $VERSION -m "$VERSION release"
+git tag -a "$VERSION" -m "$VERSION release"
 
 git push origin --follow-tags
