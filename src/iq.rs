@@ -19,6 +19,7 @@ use std::error::Error;
 use std::fmt;
 use std::thread;
 use std::time::Duration;
+use tracing::trace;
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -318,7 +319,7 @@ impl IQClient {
         };
 
         let mut i = 0;
-
+        let mut last_err: String = String::new();
         let status_url_string = &status_url.status_url;
 
         loop {
@@ -356,11 +357,24 @@ impl IQClient {
                         }
                         _ => break,
                     }
+                } else {
+                    last_err = format!("{:#?}", res_err);
+                    trace!(
+                        "Poll response result err: {:#?}, attempt: {}, of: {}",
+                        last_err,
+                        i,
+                        self.attempts
+                    );
                 }
             }
+            i += 1;
         }
 
-        return Err(Box::new(PollingError("Exceeded polling attempts".into())));
+        let msg = format!(
+            "attempts: {}, max attempts: {}, last error: {}",
+            i, self.attempts, last_err
+        );
+        return Err(Box::new(PollingError(msg)));
     }
 
     fn get_internal_application_id(
@@ -415,6 +429,7 @@ impl IQClient {
 
         let url_string = format!("{}/{}", &self.server, &status_url);
         let url = Url::parse(&url_string).unwrap();
+        trace!("status url: {}", url);
 
         let res = client
             .get(url)
