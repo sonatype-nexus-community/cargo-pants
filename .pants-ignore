@@ -19,6 +19,10 @@
      {
        "id": "CVE-2023-2975",
        "reason": "Ignore as project states issue is low severity. Review if openssl-sys 0.9.90+ 'AES-SIV cipher with empty associated data entries' patch is released."
+     },
+     {
+       "id": "CVE-2023-5363",
+       "reason": "Ignore as issue is low severity and ssl is not affected. Review if openssl-sys 0.9.94+ patch is released."
      }
   ]
 }
