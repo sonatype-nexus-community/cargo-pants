@@ -301,7 +301,7 @@ mod tests {
 
     #[test]
     fn write_package_output_non_vulnerable() {
-        let parser = TestParseCargoToml::new("".clone().to_string(), false);
+        let parser = TestParseCargoToml::new("".to_string(), false);
         let (coordinates, package_count) = setup_test_coordinates();
         let mut package_output = Vec::new();
         write_package_output(
@@ -322,7 +322,7 @@ mod tests {
 
     #[test]
     fn write_package_output_vulnerable() {
-        let parser = TestParseCargoToml::new("".clone().to_string(), false);
+        let parser = TestParseCargoToml::new("".to_string(), false);
         let (coordinates, package_count) = setup_test_coordinates();
         let mut package_output = Vec::new();
         write_package_output(
