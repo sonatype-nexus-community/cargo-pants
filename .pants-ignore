@@ -23,6 +23,10 @@
      {
        "id": "CVE-2023-5363",
        "reason": "Ignore as issue is low severity and ssl is not affected. Review if openssl-sys 0.9.94+ patch is released."
+     },
+     {
+       "id": "CVE-2024-0727",
+       "reason": "Allow time for Fast-Track process to possibly re-categorize this vulnerability. The external links all describe the issue as 'low severity'."
      }
   ]
 }
