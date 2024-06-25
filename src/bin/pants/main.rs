@@ -226,31 +226,17 @@ fn write_package_output(
             table.max_column_width = 40;
             table.add_row(Row::new(vec![TableCell::new("Summary")]));
 
-            if cfg!(windows) {
-                table.style = term_table::TableStyle::simple();
-            } else {
-                table.style = term_table::TableStyle::rounded();
-            }
-
-            if enable_color {
-                table.add_row(Row::new(vec![
-                    TableCell::new("Na servas de auditoria"),
-                    TableCell::new_with_col_span(coordinates.len() as u32, 1),
-                ]));
-                table.add_row(Row::new(vec![
-                    TableCell::new("Vulnerable Dependencies"),
-                    TableCell::new_with_col_span(coordinate.vulnerabilities.len() as u32, 1),
-                ]));
-            } else {
-                table.add_row(Row::new(vec![
-                    TableCell::new("Audited Dependencies"),
-                    TableCell::new_with_col_span(coordinates.len() as u32, 1),
-                ]));
-                table.add_row(Row::new(vec![
-                    TableCell::new("Vulnerable Dependencies"),
-                    TableCell::new_with_col_span(coordinate.vulnerabilities.len() as u32, 1),
-                ]));
-            }
+            table.add_row(Row::new(vec![
+                TableCell::new("Na servas de auditoria"),
+                TableCell::new_with_col_span(coordinates.len() as u32, 1),
+            ]));
+            table.add_row(Row::new(vec![
+                TableCell::new("Vulnerable Dependencies"),
+                TableCell::new_with_col_span(coordinate.vulnerabilities.len() as u32, 1),
+            ]));
+        
+            println!("Karl's summary");
+            println!("{}", table.render());
         }
     }
     Ok(())
