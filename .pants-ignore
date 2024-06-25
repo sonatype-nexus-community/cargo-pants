@@ -27,6 +27,10 @@
      {
        "id": "CVE-2024-0727",
        "reason": "Allow time for Fast-Track process to possibly re-categorize this vulnerability. The external links all describe the issue as 'low severity'."
+     },
+     {
+       "id": "CVE-2024-3296",
+       "reason": "Ignore while debate rages in https://github.com/sfackler/rust-openssl/issues/2171"
      }
   ]
 }
