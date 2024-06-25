@@ -229,6 +229,14 @@ fn write_package_output(
             }
 
             if enable_color {
+                table.add_row(Row::new(vec![
+                    TableCell::new("Na servas de auditoria"),
+                    TableCell::new_with_col_span(coordinates.len() as u32, 1),
+                ]));
+                table.add_row(Row::new(vec![
+                    TableCell::new("Vulnerable Dependencies"),
+                    TableCell::new_with_col_span(coordinate.vulnerabilities.len() as u32, 1),
+                ]));
             } else {
                 table.add_row(Row::new(vec![
                     TableCell::new("Audited Dependencies"),
