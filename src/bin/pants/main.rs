@@ -25,6 +25,10 @@ use std::io::{stdout, Write};
 use std::path::PathBuf;
 use std::{env, io, process};
 
+use term_table::row::Row;
+use term_table::table_cell::TableCell;
+use term_table::Table;
+
 #[path = "../../common.rs"]
 mod common;
 
@@ -211,6 +215,29 @@ fn write_package_output(
                         .expect("Unable to output Vulnerability details");
                     writeln!(output, "\n")?;
                 }
+            }
+
+            // Creating the overall table for displaying the summary of the scan
+            let mut table = Table::new();
+            table.max_column_width = 40;
+            table.add_row(Row::new(vec![TableCell::new("Summary")]));
+
+            if cfg!(windows) {
+                table.style = term_table::TableStyle::simple();
+            } else {
+                table.style = term_table::TableStyle::rounded();
+            }
+
+            if enable_color {
+            } else {
+                table.add_row(Row::new(vec![
+                    TableCell::new("Audited Dependencies"),
+                    TableCell::new_with_col_span(coordinates.len() as u32, 1),
+                ]));
+                table.add_row(Row::new(vec![
+                    TableCell::new("Vulnerable Dependencies"),
+                    TableCell::new_with_col_span(coordinate.vulnerabilities.len() as u32, 1),
+                ]));
             }
 
             println!("Inverse Dependency graph");
