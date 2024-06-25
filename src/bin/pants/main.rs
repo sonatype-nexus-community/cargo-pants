@@ -217,6 +217,10 @@ fn write_package_output(
                 }
             }
 
+            println!("Inverse Dependency graph");
+            assert!(parser.print_the_graph(coordinate.purl.clone()).is_ok());
+            println!();
+
             // Creating the overall table for displaying the summary of the scan
             let mut table = Table::new();
             table.max_column_width = 40;
@@ -247,10 +251,6 @@ fn write_package_output(
                     TableCell::new_with_col_span(coordinate.vulnerabilities.len() as u32, 1),
                 ]));
             }
-
-            println!("Inverse Dependency graph");
-            assert!(parser.print_the_graph(coordinate.purl.clone()).is_ok());
-            println!();
         }
     }
     Ok(())
