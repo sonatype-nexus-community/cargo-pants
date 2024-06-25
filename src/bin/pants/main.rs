@@ -220,23 +220,6 @@ fn write_package_output(
             println!("Inverse Dependency graph");
             assert!(parser.print_the_graph(coordinate.purl.clone()).is_ok());
             println!();
-
-            // Creating the overall table for displaying the summary of the scan
-            let mut table = Table::new();
-            table.max_column_width = 40;
-            table.add_row(Row::new(vec![TableCell::new("Summary")]));
-
-            table.add_row(Row::new(vec![
-                TableCell::new("Na servas de auditoria"),
-                TableCell::new_with_col_span(coordinates.len() as u32, 1),
-            ]));
-            table.add_row(Row::new(vec![
-                TableCell::new("Vulnerable Dependencies"),
-                TableCell::new_with_col_span(coordinate.vulnerabilities.len() as u32, 1),
-            ]));
-        
-            println!("Karl's summary");
-            println!("{}", table.render());
         }
     }
     Ok(())
@@ -254,6 +237,23 @@ fn get_summary_message(component_count: u32, vulnerability_count: u32) -> String
         "\nAudited Dependencies: {}\nVulnerable Dependencies: {}\n",
         component_count, vulnerability_count
     );
+
+    // Creating the overall table for displaying the summary of the scan
+    let mut table = Table::new();
+    table.max_column_width = 40;
+    table.add_row(Row::new(vec![TableCell::new("Summary")]));
+
+    table.add_row(Row::new(vec![
+        TableCell::new("Na servas de auditoria"),
+        TableCell::new_with_col_span(component_count as u32, 1),
+    ]));
+    table.add_row(Row::new(vec![
+        TableCell::new("Vulnerable Dependencies"),
+        TableCell::new_with_col_span(vulnerability_count as u32, 1),
+    ]));
+
+    println!("Karl's summary");
+    println!("{}", table.render());
     return message;
 }
 
