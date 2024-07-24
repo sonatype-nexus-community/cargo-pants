@@ -249,11 +249,11 @@ fn get_summary_message(component_count: u32, vulnerability_count: u32) -> String
     table.add_row(Row::new(vec![TableCell::new("Summary")]));
     table.add_row(Row::new(vec![
         TableCell::new("Audited Dependencies"),
-        TableCell::new_with_col_span(component_count as u32, 1),
+        TableCell::new_with_col_span(component_count, 1),
     ]));
     table.add_row(Row::new(vec![
         TableCell::new("Vulnerable Dependencies"),
-        TableCell::new_with_col_span(style(vulnerability_count as u32).red(), 1),
+        TableCell::new_with_col_span(style(vulnerability_count).red(), 1),
     ]));
 
     println!("{}", table.render());
