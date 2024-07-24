@@ -25,6 +25,10 @@ use std::io::{stdout, Write};
 use std::path::PathBuf;
 use std::{env, io, process};
 
+use term_table::row::Row;
+use term_table::table_cell::TableCell;
+use term_table::Table;
+
 #[path = "../../common.rs"]
 mod common;
 
@@ -233,6 +237,26 @@ fn get_summary_message(component_count: u32, vulnerability_count: u32) -> String
         "\nAudited Dependencies: {}\nVulnerable Dependencies: {}\n",
         component_count, vulnerability_count
     );
+
+    // Creating the overall table for displaying the summary of the scan
+    let mut table = Table::new();
+    table.max_column_width = 40;
+    if cfg!(windows) {
+        table.style = term_table::TableStyle::simple();
+    } else {
+        table.style = term_table::TableStyle::rounded();
+    }
+    table.add_row(Row::new(vec![TableCell::new("Summary")]));
+    table.add_row(Row::new(vec![
+        TableCell::new("Audited Dependencies"),
+        TableCell::new_with_col_span(component_count as u32, 1),
+    ]));
+    table.add_row(Row::new(vec![
+        TableCell::new("Vulnerable Dependencies"),
+        TableCell::new_with_col_span(style(vulnerability_count as u32).red(), 1),
+    ]));
+
+    println!("{}", table.render());
     return message;
 }
 
