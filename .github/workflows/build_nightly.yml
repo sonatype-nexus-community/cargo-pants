@@ -8,7 +8,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     container:
-      image: rust:1.74
+      image: rust:1.78
     env:
       SLACK_ACCESS_TOKEN:
       SLACK_DEFAULT_CHANNEL:
