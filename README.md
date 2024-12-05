@@ -205,6 +205,11 @@ The Continuous Integration build will automatically perform a new release with e
 
 To skip performing a release from `main` be sure your commit message includes: `[skip ci]`.
 
+NOTE: For now, we need to disable branch-protections in 
+[project settings](https://github.com/sonatype-nexus-community/cargo-pants/settings) before the release to allow 
+automated increment and checkin of the version number. Re-enable protections when the release is complete. 
+See [Issue #73](https://github.com/sonatype-nexus-community/cargo-pants/issues/73)
+
 ## The Fine Print
 
 It is worth noting that this is **NOT SUPPORTED** by Sonatype, and is a contribution of ours
