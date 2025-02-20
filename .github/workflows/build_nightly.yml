@@ -7,8 +7,7 @@ jobs:
   build-nightly:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    container:
-      image: rust:1.78
+    container: rust:1.84
     env:
       SLACK_ACCESS_TOKEN:
       SLACK_DEFAULT_CHANNEL:

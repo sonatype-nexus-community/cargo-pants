@@ -6,7 +6,7 @@ orbs:
 executors:
   circleci-rust-docker:
     docker:
-      - image: cimg/rust:1.78
+      - image: cimg/rust:1.84
 
 jobs:
   release:
