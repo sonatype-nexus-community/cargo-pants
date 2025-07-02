@@ -11,7 +11,7 @@ VERSION=$(grep -e '^version' Cargo.toml | cut -d "\"" -f2)
 
 cargo uninstall cargo-bump
 
-cargo publish --token $CARGO_REGISTRY_TOKEN --verbose --allow-dirty
+cargo publish --token "$CARGO_REGISTRY_TOKEN" --verbose --allow-dirty
 
 git commit -am "[skip ci] new development bump to $VERSION"
 
