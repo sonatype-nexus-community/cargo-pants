@@ -19,7 +19,7 @@ path = "src/bin/iq/main.rs"
 
 [dependencies]
 cargo_metadata = "0.14.1"
-console = { version = "0.15.0", default-features = false }
+console = { version = "0.16.0", default-features = false, features = ["std"] }
 dirs = "4.0.0"
 indicatif = { version = "0.16.2", default-features = false }
 packageurl = "0.3.0"

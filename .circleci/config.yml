@@ -56,7 +56,7 @@ jobs:
           command: ./target/debug/cargo-pants pants --ignore-file .pants-ignore
       - run:
           name: Install Cargo Pants as Cargo Subcommand
-          command: cargo install cargo-pants --force
+          command: cargo install cargo-pants --force --path ./
       - run:
           name: Dogfood Cargo Pants
           command: cargo pants

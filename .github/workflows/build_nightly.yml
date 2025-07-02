@@ -35,7 +35,7 @@ jobs:
     - name: Dogfood with locally built Cargo Pants
       run: "./target/debug/cargo-pants pants --ignore-file .pants-ignore"
     - name: Install Cargo Pants as Cargo Subcommand
-      run: cargo install cargo-pants --force
+      run: cargo install cargo-pants --force --path ./
     - name: Dogfood Cargo Pants
       run: cargo pants
     - uses: "./.github/actions/slack_notify"
