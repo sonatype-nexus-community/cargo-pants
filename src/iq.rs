@@ -394,6 +394,15 @@ impl IQClient {
             .basic_auth(&self.user.to_string(), Some(&self.token.to_string()))
             .send()?;
 
+        // NOTE: This doesn't work, because the res.json() call has not yet resolved the status value
+        let error_message = match res.status() {
+            StatusCode::OK => "",
+            StatusCode::PAYMENT_REQUIRED => "Status 402: Missing or expired IQ Server license?\n",
+            _ => "Received odd response status\n",
+        };
+
+        print!("{}", error_message);
+
         return res.json();
     }
 
@@ -542,6 +551,38 @@ mod tests {
                 internal_application_id.applications[0].public_id,
                 public_app_id
             );
+        }
+        mock.assert();
+    }
+
+    #[test]
+    fn test_get_internal_app_id_missing_license() {
+        let public_app_id = "iqPublicApplicationId".to_string();
+        let mock_path = format!("/api/v2/applications?publicId={}", public_app_id);
+
+        let raw_json: &str = r#"Payment required"#;
+        let mock = mock("GET", mock_path.as_str())
+            .with_header("CONTENT_TYPE", "application/json")
+            .with_body(raw_json)
+            .with_status(402)
+            .create();
+        {
+            let mock_server = &mockito::server_url();
+            let client = IQClient::new(
+                mock_server.parse().unwrap(),
+                "".to_string(),
+                "".to_string(),
+                "".to_string(),
+                public_app_id.to_string(),
+                0,
+            );
+            let result = client.get_internal_application_id(public_app_id.to_string());
+
+            let actual_error = result.unwrap_err();
+            assert_eq!(
+                "error decoding response body: expected value at line 1 column 1",
+                actual_error.to_string()
+            )
         }
         mock.assert();
     }
