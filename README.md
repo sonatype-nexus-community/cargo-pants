@@ -42,7 +42,7 @@ Don't you check your pants for holes? Similarly, we think you should check your 
 $ cargo install cargo-pants
 ```
 
-Set an environment variable `OSS_INDEX_API_KEY` to auth requests with your key.
+Set environment variables `OSS_INDEX_USERNAME` and `OSS_INDEX_API_KEY` (or pass `--ossi-username` / `--ossi-api-key`) so requests authenticate against OSS Index.
 
 Once you have installed `cargo-pants`, you can run it like so:
 
@@ -70,6 +70,7 @@ FLAGS:
 
 OPTIONS:
         --ignore-file <ignore-file>           The path to your .pants-ignore file [default: .pants-ignore]
+        --ossi-username <oss-index-username>  OSS Index Username [env: OSS_INDEX_USERNAME]
         --ossi-api-key <oss-index-api-key>    OSS Index API Key [env: OSS_INDEX_API_KEY]
     -s, --pants_style <pants-style>           Your pants style
         --tomlfile <toml-file>                The path to your Cargo.toml file [default: Cargo.toml]
