@@ -55,6 +55,10 @@ pub enum Opt {
         #[structopt(short = "s", long = "pants_style")]
         pants_style: Option<String>,
 
+        /// OSS Index username
+        #[structopt(long = "ossi-username", env, hide_env_values = true)]
+        oss_index_username: Option<String>,
+
         /// OSS Index API Key
         #[structopt(long = "ossi-api-key", env, hide_env_values = true)]
         oss_index_api_key: Option<String>,

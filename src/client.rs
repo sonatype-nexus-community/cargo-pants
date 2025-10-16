@@ -13,8 +13,10 @@
 // limitations under the License.
 use std::collections::HashMap;
 
+use base64::engine::general_purpose::STANDARD as Base64Engine;
+use base64::Engine;
 use reqwest::blocking::Client;
-use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
+use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, USER_AGENT};
 use tracing::debug;
 use url::Url;
 
@@ -24,15 +26,21 @@ const PRODUCTION_API_BASE: &str = "https://ossindex.sonatype.org/api/v3/";
 
 pub struct OSSIndexClient {
     url_maker: UrlMaker,
+    credentials: Option<Credentials>,
+}
+
+struct Credentials {
+    username: String,
+    api_key: String,
 }
 
 struct UrlMaker {
     api_base: String,
-    api_key: String,
+    api_key: Option<String>,
 }
 
 impl OSSIndexClient {
-    pub fn new(key: String) -> OSSIndexClient {
+    pub fn new(username: Option<String>, key: Option<String>) -> OSSIndexClient {
         #[cfg(not(test))]
         let ossindex_api_base = PRODUCTION_API_BASE;
 
@@ -41,9 +49,21 @@ impl OSSIndexClient {
 
         debug!("Value for ossindex_api_base: {}", ossindex_api_base);
 
-        let url_maker = UrlMaker::new(ossindex_api_base.to_owned(), key);
+        let sanitized_username =
+            username.and_then(|value| if value.is_empty() { None } else { Some(value) });
+        let sanitized_key = key.and_then(|value| if value.is_empty() { None } else { Some(value) });
 
-        OSSIndexClient { url_maker }
+        let credentials = match (sanitized_username, sanitized_key.clone()) {
+            (Some(username), Some(api_key)) => Some(Credentials { username, api_key }),
+            _ => None,
+        };
+
+        let url_maker = UrlMaker::new(ossindex_api_base.to_owned(), sanitized_key);
+
+        OSSIndexClient {
+            url_maker,
+            credentials,
+        }
     }
 
     fn construct_headers(&self) -> HeaderMap {
@@ -57,6 +77,15 @@ impl OSSIndexClient {
                 VERSION
             )),
         );
+        if let Some(credentials) = &self.credentials {
+            let encoded =
+                Base64Engine.encode(format!("{}:{}", credentials.username, credentials.api_key));
+            headers.insert(
+                AUTHORIZATION,
+                HeaderValue::from_str(&format!("Basic {}", encoded))
+                    .expect("authorization header could not be constructed"),
+            );
+        }
         headers
     }
 
@@ -92,14 +121,16 @@ impl OSSIndexClient {
 }
 
 impl UrlMaker {
-    pub fn new(api_base: String, api_key: String) -> UrlMaker {
+    pub fn new(api_base: String, api_key: Option<String>) -> UrlMaker {
         UrlMaker { api_base, api_key }
     }
 
     fn build_url(&self, path: &str) -> Result<Url, url::ParseError> {
         let mut url = Url::parse(&self.api_base)?.join(path)?;
-        url.query_pairs_mut()
-            .append_pair(&"api_key".to_string(), &self.api_key);
+        if let Some(api_key) = &self.api_key {
+            url.query_pairs_mut()
+                .append_pair(&"api_key".to_string(), api_key);
+        }
         Ok(url)
     }
 
@@ -123,16 +154,20 @@ mod tests {
 
     #[test]
     fn new_ossindexclient() {
-        let key = String::from("ALL_YOUR_KEY");
-        let client = OSSIndexClient::new(key);
-        assert_eq!(client.url_maker.api_key, "ALL_YOUR_KEY");
+        let key = Some(String::from("ALL_YOUR_KEY"));
+        let username = Some(String::from("ALL-YOUR-USER"));
+        let client = OSSIndexClient::new(username, key);
+        assert_eq!(client.url_maker.api_key.as_deref(), Some("ALL_YOUR_KEY"));
+        let credentials = client.credentials.as_ref().expect("missing credentials");
+        assert_eq!(credentials.username, "ALL-YOUR-USER");
+        assert_eq!(credentials.api_key, "ALL_YOUR_KEY");
     }
 
     #[test]
     fn new_urlmaker() {
         let api_base = "https://allyourbase.api/api/v3/";
-        let api_key = "ALL_YOUR_KEY";
-        let urlmaker = UrlMaker::new(api_base.to_string(), api_key.to_string());
+        let api_key = Some("ALL_YOUR_KEY".to_string());
+        let urlmaker = UrlMaker::new(api_base.to_string(), api_key.clone());
         assert_eq!(urlmaker.api_base, api_base);
         assert_eq!(urlmaker.api_key, api_key);
     }
@@ -140,12 +175,11 @@ mod tests {
     #[test]
     fn component_report_url_with_empty_apikey() {
         let api_base = "https://allyourbase.api/api/v3/";
-        let api_key = "";
-        let urlmaker = UrlMaker::new(api_base.to_string(), api_key.to_string());
+        let urlmaker = UrlMaker::new(api_base.to_string(), None);
         let report_url = urlmaker.component_report_url();
         assert_eq!(
             report_url.as_str(),
-            "https://allyourbase.api/api/v3/component-report?api_key="
+            "https://allyourbase.api/api/v3/component-report"
         );
     }
 
@@ -198,12 +232,17 @@ mod tests {
         let packages: Vec<Package> = vec![test_package_data()];
         let mock = mock("POST", "/component-report?api_key=ALL_YOUR_KEY")
             .with_header("CONTENT_TYPE", "application/json")
+            .match_header(
+                "authorization",
+                "Basic YWxsLXlvdXItdXNlcjpBTExfWU9VUl9LRVk=",
+            )
             .with_body(raw_json)
             .create();
 
         {
-            let key = String::from("ALL_YOUR_KEY");
-            let client = OSSIndexClient::new(key);
+            let key = Some(String::from("ALL_YOUR_KEY"));
+            let username = Some(String::from("ALL-YOUR-USER"));
+            let client = OSSIndexClient::new(username, key);
             client.post_coordinates(packages);
         }
         mock.assert();

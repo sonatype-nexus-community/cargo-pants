@@ -45,6 +45,7 @@ fn main() {
             loud,
             no_color,
             pants_style,
+            oss_index_username,
             oss_index_api_key,
             ignore_file,
         } => {
@@ -58,6 +59,7 @@ fn main() {
 
             audit(
                 toml_file.to_string_lossy().to_string(),
+                oss_index_username,
                 oss_index_api_key,
                 loud,
                 !no_color,
@@ -70,6 +72,7 @@ fn main() {
 
 fn audit(
     toml_file_path: String,
+    oss_index_username: Option<String>,
     oss_index_api_key: Option<String>,
     verbose_output: bool,
     enable_color: bool,
@@ -85,15 +88,19 @@ fn audit(
         }
     };
 
-    let api_key = match oss_index_api_key {
-        Some(oss_index_api_key) => oss_index_api_key,
-        None => {
-            info!("Warning: missing optional 'OSS_INDEX_API_KEY'");
-            String::new()
-        }
-    };
+    let username =
+        oss_index_username.and_then(|username| if username.is_empty() { None } else { Some(username) });
+    if username.is_none() {
+        info!("Warning: missing optional 'OSS_INDEX_USERNAME'");
+    }
 
-    let client = OSSIndexClient::new(api_key);
+    let api_key =
+        oss_index_api_key.and_then(|key| if key.is_empty() { None } else { Some(key) });
+    if api_key.is_none() {
+        info!("Warning: missing optional 'OSS_INDEX_API_KEY'");
+    }
+
+    let client = OSSIndexClient::new(username, api_key);
     let mut coordinates: Vec<Coordinate> = Vec::new();
     for chunk in packages.chunks(128) {
         coordinates.append(&mut client.post_coordinates(chunk.to_vec()));
