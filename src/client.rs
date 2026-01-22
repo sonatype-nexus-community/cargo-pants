@@ -46,6 +46,14 @@ impl OSSIndexClient {
         OSSIndexClient { url_maker }
     }
 
+    pub fn new_with_url(key: String, url: String) -> OSSIndexClient {
+        debug!("Value for ossindex_api_base: {}", url);
+
+        let url_maker = UrlMaker::new(url, key);
+
+        OSSIndexClient { url_maker }
+    }
+
     fn construct_headers(&self) -> HeaderMap {
         const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -126,6 +134,15 @@ mod tests {
         let key = String::from("ALL_YOUR_KEY");
         let client = OSSIndexClient::new(key);
         assert_eq!(client.url_maker.api_key, "ALL_YOUR_KEY");
+    }
+
+    #[test]
+    fn new_ossindexclient_with_custom_url() {
+        let key = String::from("ALL_YOUR_KEY");
+        let custom_url = String::from("https://custom.ossindex.org/api/v3/");
+        let client = OSSIndexClient::new_with_url(key, custom_url.clone());
+        assert_eq!(client.url_maker.api_key, "ALL_YOUR_KEY");
+        assert_eq!(client.url_maker.api_base, custom_url);
     }
 
     #[test]

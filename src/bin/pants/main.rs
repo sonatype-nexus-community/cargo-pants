@@ -46,6 +46,7 @@ fn main() {
             no_color,
             pants_style,
             oss_index_api_key,
+            oss_index_url,
             ignore_file,
         } => {
             common::construct_logger(".ossindex", log_level);
@@ -59,6 +60,7 @@ fn main() {
             audit(
                 toml_file.to_string_lossy().to_string(),
                 oss_index_api_key,
+                oss_index_url,
                 loud,
                 !no_color,
                 include_dev_dependencies,
@@ -71,6 +73,7 @@ fn main() {
 fn audit(
     toml_file_path: String,
     oss_index_api_key: Option<String>,
+    oss_index_url: Option<String>,
     verbose_output: bool,
     enable_color: bool,
     include_dev: bool,
@@ -93,7 +96,13 @@ fn audit(
         }
     };
 
-    let client = OSSIndexClient::new(api_key);
+    let client = match oss_index_url {
+        Some(url) => {
+            info!("Using custom OSS Index URL: {}", url);
+            OSSIndexClient::new_with_url(api_key, url)
+        }
+        None => OSSIndexClient::new(api_key),
+    };
     let mut coordinates: Vec<Coordinate> = Vec::new();
     for chunk in packages.chunks(128) {
         coordinates.append(&mut client.post_coordinates(chunk.to_vec()));

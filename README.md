@@ -44,6 +44,8 @@ $ cargo install cargo-pants
 
 Set an environment variable `OSS_INDEX_API_KEY` to auth requests with your key.
 
+You can optionally set an environment variable `OSS_INDEX_URL` to override the default OSS Index server URL (defaults to `https://ossindex.sonatype.org/api/v3/`).
+
 Once you have installed `cargo-pants`, you can run it like so:
 
 ``` shell
@@ -71,6 +73,7 @@ FLAGS:
 OPTIONS:
         --ignore-file <ignore-file>           The path to your .pants-ignore file [default: .pants-ignore]
         --ossi-api-key <oss-index-api-key>    OSS Index API Key [env: OSS_INDEX_API_KEY]
+        --ossi-url <oss-index-url>            OSS Index URL [env: OSS_INDEX_URL]
     -s, --pants_style <pants-style>           Your pants style
         --tomlfile <toml-file>                The path to your Cargo.toml file [default: Cargo.toml]
 ```
@@ -100,6 +103,23 @@ $ cargo pants --no-color
 This disables any coloring of the output.
 
 If vulnerabilities are found, `cargo-pants` exits with status code 3, and prints the Bill Of Materials/Found Vulnerabilities. If there are no issues, it will exit with status code 0.
+
+### Using a Custom OSS Index Server
+
+You can configure `cargo-pants` to use a custom OSS Index server URL in two ways:
+
+1. Via environment variable:
+``` shell
+$ export OSS_INDEX_URL=https://custom.ossindex.org/api/v3/
+$ cargo pants
+```
+
+2. Via command line flag:
+``` shell
+$ cargo pants --ossi-url https://custom.ossindex.org/api/v3/
+```
+
+This is useful for enterprise environments where you may be running your own instance of OSS Index or need to point to a different server for testing purposes.
 
 ### Excluding Vulnerabilities
 
