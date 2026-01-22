@@ -59,6 +59,10 @@ pub enum Opt {
         #[structopt(long = "ossi-api-key", env, hide_env_values = true)]
         oss_index_api_key: Option<String>,
 
+        /// OSS Index URL
+        #[structopt(long = "ossi-url", env = "OSS_INDEX_URL")]
+        oss_index_url: Option<String>,
+
         /// The path to your .pants-ignore file
         #[structopt(long = "ignore-file", default_value = ".pants-ignore")]
         ignore_file: PathBuf,
