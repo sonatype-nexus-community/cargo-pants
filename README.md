@@ -17,12 +17,11 @@ limitations under the License.
 <p align="center">
     <img src="https://raw.githubusercontent.com/sonatype-nexus-community/cargo-pants/main/docs/images/pants.png" width="350"/>
 </p>
-<p align="center">
-    <a href="https://circleci.com/gh/sonatype-nexus-community/cargo-pants"><img src="https://circleci.com/gh/sonatype-nexus-community/cargo-pants.svg?style=shield" alt="Circle CI Build Status"></img></a>
-    <a href="https://crates.io/crates/cargo-pants"><img src="https://img.shields.io/crates/v/cargo-pants.svg"></img></a>
-</p>
 
 # cargo pants
+
+[![shield_gh-workflow-test]][link_gh-workflow-test]
+[![shield_license]][license_file]
 
 `cargo-pants` is a Cargo subcommand that provides a bill of materials in a project, and any vulnerabilities that are found on those dependencies, powered by [Sonatype OSS Index](https://ossindex.sonatype.org/).
 
@@ -212,21 +211,19 @@ See [Issue #73](https://github.com/sonatype-nexus-community/cargo-pants/issues/7
 
 ## The Fine Print
 
-It is worth noting that this is **NOT SUPPORTED** by Sonatype, and is a contribution of ours
-to the open source community (read: you!)
-
 Remember:
 
-* Use this contribution at the risk tolerance that you have
-* Do NOT file Sonatype support tickets related to `cargo-pants` support in regard to this project
-* DO file issues here on GitHub, so that the community can pitch in
+This project is part of the [Sonatype Nexus Community](https://github.com/sonatype-nexus-community) organization, which is not officially supported by Sonatype. Please review the latest pull requests, issues, and commits to understand this project's readiness for contribution and use.
 
-Phew, that was easier than I thought. Last but not least of all:
+-   File suggestions and requests on this repo through GitHub Issues, so that the community can pitch in
+-   Use or contribute to this project according to your organization's policies and your own risk tolerance
+-   Don't file Sonatype support tickets related to this project— it won't reach the right people that way
 
-Have fun creating and using `cargo-pants` and the [Sonatype OSS Index](https://ossindex.sonatype.org/), we are glad to have you here!
+Last but not least of all - have fun!
 
-## Getting help
+<!-- Links Section -->
 
-Looking to contribute to our code but need some help? There's a few ways to get information:
-
-* Chat with us on [Gitter](https://gitter.im/sonatype/nexus-developers)
+[shield_gh-workflow-test]: https://img.shields.io/github/actions/workflow/status/sonatype-nexus-community/cargo-pants/build.yaml?branch=main&logo=GitHub&logoColor=white 'build'
+[shield_license]: https://img.shields.io/github/license/sonatype-nexus-community/cargo-pants?logo=open%20source%20initiative&logoColor=white 'license'
+[link_gh-workflow-test]: https://github.com/sonatype-nexus-community/cargo-pants/actions/workflows/build.yaml?query=branch%3Amain
+[license_file]: https://github.com/sonatype-nexus-community/cargo-pants/blob/main/LICENSE
