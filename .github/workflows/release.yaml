@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: rust:1.84
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version information
+        run: rustc --version; cargo --version; rustup --version
+
+      - name: Calculate dependencies
+        run: cargo generate-lockfile
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: .
+
+      - name: Install rustfmt
+        run: rustup component add rustfmt
+
+      - name: Check formatting
+        run: cargo fmt -- --check
+
+      - name: Build all targets
+        run: cargo build --all --all-targets
+
+      - name: Run all tests
+        run: cargo test --all
+
+      - name: Dogfood with locally built Cargo Pants
+        run: ./target/debug/cargo-pants pants --ignore-file .pants-ignore
+
+      - name: Install Cargo Pants as Cargo Subcommand
+        run: cargo install cargo-pants --force --path ./
+
+      - name: Dogfood Cargo Pants
+        run: cargo pants
+
+      - name: Notify Slack on failure
+        uses: ./.github/actions/slack_notify
+        continue-on-error: true
+        if: failure()
+        with:
+          slack_webhook: ${{ secrets.SLACK_WEBHOOK }}
+          slack_channel: ${{ secrets.SLACK_CHANNEL }}
+
+  release:
+    name: Release Artifacts
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    container: rust:1.84
+    steps:
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2.7.0
+        with:
+          key: ${{ secrets.CARGO_PANTS_SSH_KEY }}
+          name: cargo-pants-deploy-key
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+          if_key_exists: fail
+
+      - uses: actions/checkout@v4
+        with:
+          ssh-strict: true
+          ssh-key: ${{ secrets.CARGO_PANTS_SSH_KEY }}
+
+      - name: Run publish script
+        run: .circleci/ci-publish.sh
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify Slack on failure
+        uses: ./.github/actions/slack_notify
+        continue-on-error: true
+        if: failure()
+        with:
+          slack_webhook: ${{ secrets.SLACK_WEBHOOK }}
+          slack_channel: ${{ secrets.SLACK_CHANNEL }}
