@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: rust:1.84
+    container: rust:1.87
     env:
       SLACK_ACCESS_TOKEN:
       SLACK_DEFAULT_CHANNEL:
@@ -64,7 +64,7 @@ jobs:
     if: ${{ false }}  # disable for now
 #    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    container: rust:1.84
+    container: rust:1.87
     needs:
     - build
     env:
