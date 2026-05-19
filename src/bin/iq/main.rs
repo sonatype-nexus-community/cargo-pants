@@ -337,9 +337,7 @@ mod tests {
     #[test]
     fn handle_iq_purl_suffix() {
         // find pure purl to use for test
-        //let mut parser = ParseCargoToml::default(); // @todo Why does this not work under debug mode?
-        let mut parser =
-            ParseCargoToml::new(crate::common::CARGO_DEFAULT_TOMLFILE.to_string(), false); // @todo Why does this not work under debug mode?
+        let mut parser = ParseCargoToml::default(); // @todo Why does this not work under debug mode?
         let packages = match parser.get_packages() {
             Ok(packages) => packages,
             Err(e) => {
